@@ -1,0 +1,407 @@
+{
+ "format": "voice-studio-project",
+ "version": 1,
+ "id": "campus-safety-time-machine-ep3",
+ "title": "校園安全時光機 Episode 3",
+ "description": "校園安全教育 3D 冒險遊戲第三集的全部台詞（悠悅樓平台：互推比力氣）。",
+ "updated": "2026-11-25T20:00:00+08:00",
+ "engine": {
+  "model": "qwen3-tts-customvoice",
+  "language": "chinese",
+  "temperature": 0.8
+ },
+ "instruct": "用台灣口音的國語說話，咬字清楚自然",
+ "pronunciation": [],
+ "roles": [
+  {
+   "id": "nar",
+   "name": "旁白",
+   "speaker": "uncle_fu",
+   "instruct": "說故事的語氣",
+   "post": {
+    "enabled": true,
+    "preset": "一般男聲",
+    "pitchHz": 0,
+    "pitchLock": 0.6,
+    "formant": 1.0
+   }
+  },
+  {
+   "id": "teacher",
+   "name": "王老師",
+   "speaker": "serena",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "一般女聲",
+    "pitchHz": 0,
+    "pitchLock": 0.6,
+    "formant": 1.0
+   }
+  },
+  {
+   "id": "devil",
+   "name": "小惡魔",
+   "speaker": "ryan",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "惡魔",
+    "pitchHz": 0,
+    "pitchLock": 0.6,
+    "formant": 0.9,
+    "octDown": 0.2,
+    "growl": 0.12,
+    "bassDb": 2,
+    "echoMs": 100,
+    "echoFeedback": 0.25,
+    "echoMix": 0.2
+   }
+  },
+  {
+   "id": "angel",
+   "name": "小天使",
+   "speaker": "serena",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "天使",
+    "pitchHz": 0,
+    "pitchLock": 0.6,
+    "formant": 1.08,
+    "octUp": 0.18,
+    "trebleDb": 3,
+    "reverb": 0.35
+   }
+  },
+  {
+   "id": "me_b",
+   "name": "主角男生(五年級)",
+   "speaker": "aiden",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "自訂",
+    "pitchHz": 255,
+    "pitchLock": 0.6,
+    "formant": 1.15,
+    "trebleDb": 1
+   }
+  },
+  {
+   "id": "me_g",
+   "name": "主角女生(五年級)",
+   "speaker": "vivian",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "自訂",
+    "pitchHz": 275,
+    "pitchLock": 0.6,
+    "formant": 1.16,
+    "trebleDb": 1
+   }
+  },
+  {
+   "id": "xiaomei",
+   "name": "小美(二年級)",
+   "speaker": "vivian",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "自訂",
+    "pitchHz": 310,
+    "pitchLock": 0.6,
+    "formant": 1.2,
+    "speed": 1.03,
+    "trebleDb": 2
+   }
+  }
+ ],
+ "lines": [
+  {
+   "id": "001",
+   "role": "devil",
+   "text": "你又被我騙了！小美的頭撞到地上，三天後腦出血、緊急開刀，右眼只看得到一半的世界！",
+   "instruct": "得意地大笑、嘲諷"
+  },
+  {
+   "id": "002",
+   "role": "nar",
+   "text": "下課時間，你在悠悅樓的平台上休息，小美跑了過來。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "003",
+   "role": "xiaomei",
+   "text": "我們來比力氣！我最近每天幫媽媽搬東西，力氣超大！",
+   "instruct": "活潑的小女孩語氣"
+  },
+  {
+   "id": "004",
+   "role": "me_b",
+   "text": "比力氣？怎麼比？",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "005",
+   "role": "me_g",
+   "text": "比力氣？怎麼比？",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "006",
+   "role": "xiaomei",
+   "text": "像相撲一樣！蹲低一點，手掌對手掌互推，腳先離開原地的人就輸了！",
+   "instruct": "活潑的小女孩語氣"
+  },
+  {
+   "id": "007",
+   "role": "devil",
+   "text": "比就比！推贏她，讓大家看看你有多厲害！",
+   "instruct": "狡猾、慫恿的語氣"
+  },
+  {
+   "id": "008",
+   "role": "nar",
+   "text": "你們面對面蹲低身體，手掌貼著手掌。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "009",
+   "role": "devil",
+   "text": "蹲下去，手掌貼上去，用力推！",
+   "instruct": "狡猾、慫恿的語氣"
+  },
+  {
+   "id": "010",
+   "role": "xiaomei",
+   "text": "我要贏了！你快被推出去了！",
+   "instruct": "活潑的小女孩語氣"
+  },
+  {
+   "id": "011",
+   "role": "nar",
+   "text": "小美越推越用力，你的腳往後滑了一步。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "012",
+   "role": "devil",
+   "text": "你要輸了！突然用力推一下，她馬上就輸了！",
+   "instruct": "狡猾、慫恿的語氣"
+  },
+  {
+   "id": "013",
+   "role": "xiaomei",
+   "text": "好痛……我的頭……",
+   "instruct": "痛苦、虛弱地說"
+  },
+  {
+   "id": "014",
+   "role": "me_b",
+   "text": "對不起！你還好嗎？我去叫老師！",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "015",
+   "role": "me_g",
+   "text": "對不起！你還好嗎？我去叫老師！",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "016",
+   "role": "devil",
+   "text": "不要去！她又沒流血，告訴老師你就會被罵。",
+   "instruct": "狡猾、慫恿的語氣"
+  },
+  {
+   "id": "017",
+   "role": "xiaomei",
+   "text": "……好像沒那麼痛了。不要告訴老師好不好？",
+   "instruct": "活潑的小女孩語氣"
+  },
+  {
+   "id": "018",
+   "role": "me_b",
+   "text": "……好吧。",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "019",
+   "role": "me_g",
+   "text": "……好吧。",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "020",
+   "role": "teacher",
+   "text": "小美，先不要動！老師馬上叫救護車，也通知你的家長。",
+   "instruct": "溫和關心的語氣"
+  },
+  {
+   "id": "021",
+   "role": "nar",
+   "text": "救護車很快就到了，把小美送到醫院檢查。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "022",
+   "role": "me_b",
+   "text": "我以為她沒事了……那時候，我應該馬上告訴老師的……",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "023",
+   "role": "me_g",
+   "text": "我以為她沒事了……那時候，我應該馬上告訴老師的……",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "024",
+   "role": "devil",
+   "text": "是她自己說不要告訴老師的，不關你的事。",
+   "instruct": "狡猾、慫恿的語氣"
+  },
+  {
+   "id": "025",
+   "role": "angel",
+   "text": "手掌互推、拉手比力氣，只要有人突然用力或鬆手，另一個人就會往後倒，頭撞到地上。",
+   "instruct": "溫柔堅定的語氣"
+  },
+  {
+   "id": "026",
+   "role": "angel",
+   "text": "頭撞到了，就算當下不痛，也要馬上告訴大人。我讓時間倒轉，回到小美來找你比力氣的時候，這一次，請你自己選。",
+   "instruct": "溫柔堅定的語氣"
+  },
+  {
+   "id": "027",
+   "role": "xiaomei",
+   "text": "我們來比力氣！像相撲一樣，手掌對手掌互推！",
+   "instruct": "活潑的小女孩語氣"
+  },
+  {
+   "id": "028",
+   "role": "angel",
+   "text": "這一次，你可以自己選。想一想，怎麼玩才安全？",
+   "instruct": "溫柔堅定的語氣"
+  },
+  {
+   "id": "029",
+   "role": "nar",
+   "text": "你們手掌對手掌互推，推著推著，你忍不住突然用力一推。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "030",
+   "role": "nar",
+   "text": "你們拉著手往後拉，你一鬆手，小美整個人往後倒了下去。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "031",
+   "role": "nar",
+   "text": "一開始輕輕的，可是推著推著越來越用力，小美一個沒站穩，往後倒了下去。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "032",
+   "role": "xiaomei",
+   "text": "好啊！剪刀、石頭、布！我出石頭！",
+   "instruct": "活潑的小女孩語氣"
+  },
+  {
+   "id": "033",
+   "role": "me_b",
+   "text": "我出布，我贏了！",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "034",
+   "role": "me_g",
+   "text": "我出布，我贏了！",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "035",
+   "role": "teacher",
+   "text": "你們改玩猜拳，很好喔。手掌互推、拉手比力氣，只要一鬆手，就會往後倒。",
+   "instruct": "溫和關心的語氣"
+  },
+  {
+   "id": "036",
+   "role": "teacher",
+   "text": "如果頭撞到了，就算不痛，也一定要告訴老師，回家也要告訴家人。",
+   "instruct": "溫和關心的語氣"
+  },
+  {
+   "id": "037",
+   "role": "xiaomei",
+   "text": "知道了！我們再來一次，剪刀、石頭、布！",
+   "instruct": "活潑的小女孩語氣"
+  },
+  {
+   "id": "038",
+   "role": "nar",
+   "text": "那天晚上，小美的頭越來越痛，一直吐，被救護車送到醫院。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "039",
+   "role": "teacher",
+   "text": "醫生說，小美的腦裡面在出血，昨天晚上緊急開刀了。",
+   "instruct": "溫和關心的語氣"
+  },
+  {
+   "id": "040",
+   "role": "me_b",
+   "text": "怎麼會……那天她說已經不痛了……",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "041",
+   "role": "me_g",
+   "text": "怎麼會……那天她說已經不痛了……",
+   "instruct": "小學生自然的語氣"
+  },
+  {
+   "id": "042",
+   "role": "teacher",
+   "text": "頭撞到地面的傷，有時候過了好幾天才會出現。",
+   "instruct": "溫和關心的語氣"
+  },
+  {
+   "id": "043",
+   "role": "nar",
+   "text": "小美的生命救回來了，可是她的右眼，只看得到一半的世界。",
+   "instruct": "平穩的說故事語氣，清楚自然"
+  },
+  {
+   "id": "044",
+   "role": "angel",
+   "text": "小惡魔，不准你再騙人了！",
+   "instruct": "溫柔堅定的語氣"
+  },
+  {
+   "id": "045",
+   "role": "devil",
+   "text": "哇啊！好刺眼……我還會再回來的！",
+   "instruct": "驚慌地大叫"
+  },
+  {
+   "id": "046",
+   "role": "angel",
+   "text": "嗚……對不起，這一次我沒能保護大家……",
+   "instruct": "難過地哭著說"
+  }
+ ],
+ "output": {
+  "type": "game-voice-v1",
+  "sampleRate": 24000,
+  "mp3Kbps": 64,
+  "leadSec": 0.5,
+  "gapSec": 0.4,
+  "keyFormat": "{role}|{text}"
+ }
+}

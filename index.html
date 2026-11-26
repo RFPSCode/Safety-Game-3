@@ -1120,7 +1120,7 @@ function bravo(txt){const d=document.createElement('div');d.className='bravo';d.
 
 
 /* ================= VRM CHARACTERS (VRoid) ================= */
-const VRM_FILES={me_b:'vrm/me_b.txt',me_g:'vrm/me_g.txt',xiaokai:'vrm/xiaokai.txt',xiaomei:'vrm/xiaomei.txt',teacher:'vrm/teacher.txt'};
+const VRM_FILES={me_b:'vrm/me_b.txt',me_g:'vrm/me_g.txt',xiaokai:'vrm/xiaokai.txt',xiaoyu:'vrm/xiaoyu.txt',xiaomei:'vrm/xiaomei.txt',teacher:'vrm/teacher.txt'};
 const VRM_H={me_b:1.42,me_g:1.40,xiaokai:1.42,xiaoyu:1.24,xiaomei:1.24,teacher:1.62};
 const VRM_SLEEVE={me_b:'#2e5bc0',me_g:'#d8343c'};
 const VBUF={},VLOAD={},VCH={};
@@ -1183,7 +1183,7 @@ const JR_K=[-1.0,1.6,-0.6,0.9,0.45,0.12];
 const JP_K=[[0,-1.0,1.6,-0.6,0.9,0.45,0.12],[0.1,-0.15,0.15,0.4,-2.4,0.05,0],[0.3,-0.9,1.3,0.2,-1.9,0.2,0],[0.6,-0.6,0.8,0.1,-1.6,0.15,0]];
 const LD_K=[[0,-0.9,1.3,0.2,-1.9,0.2,0],[0.15,-1.55,2.25,-0.6,-1.3,0.5,0.22],[0.6,-1.45,2.1,-0.55,-0.9,0.4,0.2]];
 /* ground contact: sample the skinned mesh vertices (bones applied) and move the root so the lowest point rests exactly on the floor below it */
-const AIR_P=new Set(['jump','brace','trip','cheer','climb','bed','stairs','fallBack']);var HP={l:[0,0,0.9],r:[0,0,-0.9]};window.__hp=(l,r)=>{HP.l=l;HP.r=r;};const _gv=new V3();
+const AIR_P=new Set(['jump','brace','trip','cheer','climb','bed','stairs','fallBack','slideSit','crawl','kneelUp']);var HP={l:[0,0,0.9],r:[0,0,-0.9]};window.__hp=(l,r)=>{HP.l=l;HP.r=r;};const _gv=new V3();
 /* sitting on the floor rests on two contacts (buttocks and heels); lying rests on the back. Hair is soft, so it never holds a body up,
    and while lying its spring gravity is switched off so the ponytail keeps its shape along the floor instead of hanging through it */
 const SIT_P=new Set(['hurtSit','hurtArm','hurtLeg']),LIE_P=new Set(['lie','bed']);const _gw=new V3(),_gl=new V3();
@@ -1194,7 +1194,7 @@ function groundSnap(c){if(c.kind!=='vrm')return;const sit=SIT_P.has(c.pose);if(!
   if(!c.root.visible||!(c.groundOn??!AIR_P.has(c.pose))){return;}
   if(!c._gs){c._gs=[];let tot=0;const ok=o=>o.isSkinnedMesh&&o.visible&&!/hair/i.test(o.name);c.vrm.scene.traverse(o=>{if(ok(o))tot+=o.geometry.attributes.position.count;});const step=Math.max(1,Math.floor(tot/2600));
     c.vrm.scene.traverse(o=>{if(ok(o)){const n=o.geometry.attributes.position.count,ix=[];for(let i=0;i<n;i+=step)ix.push(i);c._gs.push({m:o,ix});}});}
-  const fl=(mode!=='map'&&S&&S.floor)||(curScene===campus&&CAMPUS.ready?campusFloor:(()=>0));
+  const fl=(mode!=='map'&&S&&S.floor)||(envE().ready&&envE().sc===curScene?campusFloor:(()=>0));
   if(sit){const hp=new V3(),fL=new V3(),fR=new V3();for(let it=0;it<3;it++){c.root.updateMatrixWorld(true);c.B.hips.getWorldPosition(hp);c.B.leftFoot.getWorldPosition(fL);c.B.rightFoot.getWorldPosition(fR);
       let gp=1e9,zp=0,gf=1e9,zf=0;for(const g of c._gs){const m=g.m;for(const i of g.ix){m.getVertexPosition(i,_gv);_gv.applyMatrix4(m.matrixWorld);const gap=_gv.y-fl(_gv.x,_gv.z);
         if(gap<gp&&_gv.distanceTo(hp)<0.24){gp=gap;_gw.copy(_gv);}if(gap<gf&&(_gv.distanceTo(fL)<0.16||_gv.distanceTo(fR)<0.16)){gf=gap;_gl.copy(_gv);}}}
@@ -1210,7 +1210,9 @@ function groundSnap(c){if(c.kind!=='vrm')return;const sit=SIT_P.has(c.pose);if(!
   if(lift>-1e8&&Math.abs(lift)>0.002){c.root.position.y+=lift;c.root.updateMatrixWorld(true);}c.gLift=lift;}
 /* 設計驗證：每個看得到的角色，最低點（腳底）和腳下真正看得到的地板差多少；陷入 >2 cm 或浮空 >3 cm 都算錯 */
 const _ar=new THREE.Raycaster();_ar.ray.direction.set(0,-1,0);
-function groundAudit(){const out=[];const sc=curScene;const vis=[];sc.traverse(o=>{if(o.isMesh&&o.visible&&!o.isSkinnedMesh&&!o.userData.noCol&&!o.userData.fx)vis.push(o);});
+function bodyAudit(){const out=[];const E=envE();if(!E.ready||E.sc!==curScene)return out;LIVE.forEach(c=>{if(!c.root.visible||c.root.parent!==curScene)return;if(LIE_P.has(c.pose)||SIT_P.has(c.pose)||AIR_P.has(c.pose))return;
+    const p=c.root.position;if(obstAt(p.x,p.z,0.14))out.push({who:(Object.entries(CHAR).find(([k,v])=>v===c)||['?'])[0],pose:c.pose,x:+p.x.toFixed(2),z:+p.z.toFixed(2),bad:true,kind:'inside'});});return out;}
+function groundAudit(){const out=bodyAudit();const sc=curScene;const vis=[];sc.traverse(o=>{if(o.isMesh&&o.visible&&!o.isSkinnedMesh&&!o.userData.noCol&&!o.userData.fx)vis.push(o);});
   LIVE.forEach(c=>{if(c.kind!=='vrm'||!c.root.visible||c.root.parent!==sc||!c._gs)return;if(AIR_P.has(c.pose)&&!LIE_P.has(c.pose))return;let lo=null;
     for(const g of c._gs){for(const i of g.ix){g.m.getVertexPosition(i,_gv);_gv.applyMatrix4(g.m.matrixWorld);if(!lo||_gv.y<lo.y)lo=_gv.clone();}}
     if(!lo)return;_ar.ray.origin.set(lo.x,lo.y+0.5,lo.z);_ar.far=1.5;const h=_ar.intersectObjects(vis,false).find(q=>!c.root.getObjectById(q.object.id));
@@ -1293,8 +1295,14 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     else if(P==='rps'){const k=Math.max(0,Math.sin(t*11));arm(T,-1,1.35,-1.05-k*0.25,1.15);arm(T,1,1.3,0.05,0.2);T.chest=[0.05,0,0];}
     else if(P==='headDown'){T.head=[0.45,0,0];T.neck=[0.2,0,0];T.spine=[0.1,0,0];arm(T,1,1.35,0.12,0.2);arm(T,-1,1.35,0.12,0.2);}
     else if(P==='point'){arm(T,-1,1.55,-1.45,0.05);}
+    else if(P==='slideSit'){leg(T,1,-1.5,0.12,0.15,0.05);leg(T,-1,-1.5,0.12,0.15,0.05);arm(T,1,1.2,0.35,0.25);arm(T,-1,1.2,0.35,0.25);T.spine=[0.12,0,0];T.neck=[0.05,0,0];drop=0.5;}
+    else if(P==='crawl'){const a=Math.sin(t*(c.crawlF||6)),u=Math.max(0,a),v=Math.max(0,-a);
+      leg(T,1,-0.5-0.2*u,1.9,0.6,0.1);leg(T,-1,-0.5-0.2*v,1.9,0.6,0.1);arm(T,1,1.2,-1.3-0.25*v,0.1);arm(T,-1,1.2,-1.3-0.25*u,0.1);T.spine=[1.4,0,0];T.chest=[0.2,0,0];T.neck=[-0.7,0,0];T.head=[-0.5,0,0];drop=0.38;}
+    else if(P==='kneelUp'){leg(T,1,-1.2,1.6,0.4,0.08);leg(T,-1,-0.4,0.9,0.4,0.08);arm(T,1,1.3,-1.6,0.3);arm(T,-1,1.1,-0.9,0.4);T.spine=[0.5,0,0];T.neck=[-0.35,0,0];T.head=[-0.3,0,0];drop=0.3;}
     else if(P==='bendPick'){const b=c.bend??1;leg(T,1,-1.95*b,2.45*b,-0.5*b,0.22*b);leg(T,-1,-1.9*b,2.4*b,-0.5*b,0.22*b);T.spine=[0.95*b,0,0];T.chest=[0.4*b,0,0];T.neck=[-0.2*b,0,0];T.head=[-0.25*b,0,0];}
     else if(P==='stairs'&&c.sg){const g=c.sg,R=c.legR;for(const sd of [1,-1]){const F=g.feet[sd];const dz=F.f-g.pf-R.az,dy=F.h+R.ank+R.toe*0.6*Math.sin(Math.max(0,F.p))-g.ph;let L=Math.hypot(dz,dy);L=Math.min(Math.max(L,Math.abs(R.L1-R.L2)+0.01),(R.L1+R.L2)*0.999);const ph=Math.atan2(dz,-dy),be=Math.acos(Math.min(1,Math.max(-1,(R.L1*R.L1+L*L-R.L2*R.L2)/(2*R.L1*L))));const a1=ph+be,kz=R.L1*Math.sin(a1),ky=-R.L1*Math.cos(a1),a2=Math.atan2(dz-kz,-(dy-ky));leg(T,sd,-a1,a1-a2,a2+F.p,0.03);}const am=(g.up?(g.fast?0.55:0.38):0.22)*g.tp,cs=Math.cos(PI*g.u)*am;arm(T,1,g.up?1.25:1.12,cs,g.fast?1.25:0.4);arm(T,-1,g.up?1.25:1.12,-cs,g.fast?1.25:0.4);T.spine=[g.up?(g.fast?0.34:0.17):0.03,0,0];T.chest=[g.up?0.04:0,-cs*0.12,0];T.neck=[g.up?0:0.12,0,0];T.head=[g.up?0.02:0.26,0,0];}
+    if(window.__PO&&window.__PO[P])window.__PO[P](T,arm,leg,t);
+    if(c.sling&&!['trip','jump','brace','crawl','climb'].includes(P)){if(window.__PO&&window.__PO.sling)window.__PO.sling(T,arm,leg,t);else arm(T,-1,1.3,-0.3,1.6,0,1.2);}
     if(c.carry&&!['trip','lie','hurtSit','jump','brace'].includes(P)){arm(T,1,CARRY[0],CARRY[1],CARRY[2],CARRY[3],CARRY[4]);arm(T,-1,CARRY[0],CARRY[1],CARRY[2],CARRY[3],CARRY[4]);T.chest=[0.04,0,0];}
     if(c.mood==='joy'&&P==='idle'&&!c.grip)bob+=Math.abs(Math.sin(t*6))*0.05;
     if(c.baseY0===undefined)c.baseY0=vrm.scene.position.y;c._drop=lerp(c._drop||0,drop*(c.hgt||1.3),c.snap?1:1-Math.exp(-dt*10));vrm.scene.position.y=c.baseY0-c._drop;
@@ -1426,15 +1434,17 @@ function buildCampus(){
   CAMPUS.hedge=[];
   for(const [x,z,w,d] of [[(X0+X1)/2,Z0,X1-X0+1.6,1.6],[(X0+X1)/2,Z1,X1-X0+1.6,1.6],[X0,(Z0+Z1)/2,1.6,Z1-Z0],[X1,(Z0+Z1)/2,1.6,Z1-Z0]]){
     const h=new THREE.Mesh(new THREE.BoxGeometry(w,TH,d),hm);h.position.set(x,TH/2,z);h.castShadow=h.receiveShadow=true;sc.add(h);CAMPUS.hedge.push(h);}
-  CAMPUS.root=new THREE.Group();sc.add(CAMPUS.root);
+  CAMPUS.root=new THREE.Group();sc.add(CAMPUS.root);CAMPUS.sc=sc;sc.userData.E=CAMPUS;
   return markEnv(sc);}
 const campusDown=new THREE.Raycaster();campusDown.ray.direction.set(0,-1,0);
 /* 地面高度：只對 *_NAV 走路面做向下射線（平台 0.315 m、弧形台階），結果以 5 cm 格子快取 */
-function campusFloor(x,z){if(!CAMPUS.ready)return 0;const k=Math.round(x*20)*100000+Math.round(z*20);let v=CAMPUS.fc.get(k);if(v!==undefined)return v;
-  campusDown.ray.origin.set(Math.round(x*20)/20,2.2,Math.round(z*20)/20);campusDown.far=4;const h=campusDown.intersectObjects(CAMPUS.floorM,false);v=0;for(const q of h){if(q.point.y<1.2&&q.point.y>v)v=q.point.y;}
+/* 每個場景（中庭、遊樂器材區、保健室）各有自己的走路面、碰撞格與地面快取；劇情在哪個場景，就用那個場景的 */
+function envE(){return (curScene&&curScene.userData.E)||CAMPUS;}
+function campusFloor(x,z){const E=envE();if(!E.ready)return 0;const k=Math.round(x*20)*100000+Math.round(z*20);let v=E.fc.get(k);if(v!==undefined)return v;
+  campusDown.ray.origin.set(Math.round(x*20)/20,E.rayTop||2.2,Math.round(z*20)/20);campusDown.far=(E.rayTop||2.2)+1.8;const h=campusDown.intersectObjects(E.floorM,false);v=0;for(const q of h){if(q.point.y<(E.maxFloor||1.2)&&q.point.y>v)v=q.point.y;}
     /* 走路面（NAV）沒涵蓋的地方（走廊靠牆、柱子之間），改用看得到的地板，不然腳會陷到地板下 */
-  if(CAMPUS.visM){campusDown.ray.origin.y=0.7;campusDown.far=1.2;const g=campusDown.intersectObjects(CAMPUS.visM,false).find(q=>q.point.y<0.4);if(g&&g.point.y>v+0.03)v=g.point.y;}
-  CAMPUS.fc.set(k,v);return v;}
+  if(E.visM&&!E.navOnly){campusDown.ray.origin.y=0.7;campusDown.far=1.2;const g=campusDown.intersectObjects(E.visM,false).find(q=>q.point.y<0.4);if(g&&g.point.y>v+0.03)v=g.point.y;}
+  E.fc.set(k,v);return v;}
 function campusBlocked(x,z,y){if(x<CAMPUS.X0||x>CAMPUS.X1||z<CAMPUS.Z0||z>CAMPUS.Z1)return true;const fy=campusFloor(x,z);if(fy-y>0.42)return true;return CAMPUS.nav?navHit(CAMPUS.nav,x,z,0.28,fy):false;}
 async function loadCampusModel(onProg){
   const buf=await fetchBuf('models/youyue.txt',onProg);
@@ -1463,6 +1473,33 @@ async function loadCampusModel(onProg){
    const sp=new THREE.SpotLight(0xfff6ea,3.2,16,0.7,0.7,1.1);sp.position.set(0,3.2,-5.2);sp.target.position.set(0,0.8,-11.4);campus.add(sp,sp.target);L.push(sp);CAMPUS.stageLights=L;}
   CAMPUS.spot={hub:spot('SPOT_Player_Hub'),guide:spot('SPOT_GuideNPC_Hub'),host:spot('SPOT_Host_YouyueStage')};
   return root;}
+/* ---- 其他場景（遊樂器材區、保健室）：各自一個 glb，進關卡時才下載 ---- */
+const PLAY={name:'play',file:'models/play.txt',X0:-6.3,X1:12.3,Z0:-3.0,Z1:4.6,floorM:[],ready:false,fc:new Map(),maxFloor:1.6,rayTop:2.6,skipCol:/Playground_Ground_COL/};
+const NURSE={name:'nurse',file:'models/nurse.txt',X0:-3.8,X1:4.0,Z0:-3.1,Z1:2.0,floorM:[],ready:false,fc:new Map(),skipCol:/RoomWalls|RoomFloor|RoomCeiling/};
+function envScene(E,{sky='#cfe3f3',fog=[40,140],sun=2.2,hemi=1.4,dir=[8,22,14],shadowR=14,indoor=false}={}){const sc=new THREE.Scene();sc.background=new THREE.Color(sky);if(fog)sc.fog=new THREE.Fog(sky,fog[0],fog[1]);
+  E.sun=addLights(sc,{sun,hemi,dir,shadowR,target:[0,0,0]});E.sc=sc;sc.userData.E=E;E.root=new THREE.Group();sc.add(E.root);
+  if(indoor){for(const [x,z] of [[-2.35,-1.5],[0.25,-1.5],[2.25,-1.5],[0.55,0.85]]){const p=new THREE.PointLight(0xfff6ea,1.6,7,1.3);p.position.set(x,2.55,z);sc.add(p);}}
+  return sc;}
+async function loadEnv(E,onProg){if(E.ready)return E;if(E.loading)return E.loading;
+  E.loading=(async()=>{const buf=await fetchBuf(E.file,onProg);const gltf=await new Promise((ok,ng)=>new GLTFLoader().parse(buf,'',ok,ng));
+    const root=gltf.scene;root.updateMatrixWorld(true);const tagOf=o=>{for(let p=o;p;p=p.parent){if(/_COL_|_NAV$|_LOD[12]$/.test(p.name||''))return p.name;}return o.name||'';};
+    const env=carEnv(),col=new THREE.Scene(),drop=[];
+    root.traverse(o=>{if(!o.isMesh)return;const t=tagOf(o);
+      if(/_LOD[12]$/.test(t)){drop.push(o);return;}
+      if(/_NAV$/.test(t)){o.visible=false;o.userData.noCol=true;E.floorM.push(o);return;}
+      if(/_COL_/.test(t)){o.visible=false;o.userData.noCol=true;if(!E.skipCol.test(t)){const m=new THREE.Mesh(o.geometry,new THREE.MeshBasicMaterial());m.applyMatrix4(o.matrixWorld);col.add(m);}return;}
+      o.castShadow=true;o.receiveShadow=true;
+      (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m&&m.isMeshStandardMaterial){if(m.metalness>0.2){m.metalness=0.15;m.metalnessMap=null;}if(env){m.envMap=env;m.envMapIntensity=0.5;}
+        if(m.map&&!m.transparent){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=E===NURSE?0.16:0.1;}if(m.map)m.map.anisotropy=MAXANI;m.needsUpdate=true;}});});
+    drop.forEach(o=>o.parent&&o.parent.remove(o));
+    E.visM=[];root.traverse(o=>{if(o.isMesh&&o.visible&&!o.userData.noCol)E.visM.push(o);});
+    E.root.add(root);E.model=root;E.col=col;col.updateMatrixWorld(true);E.nav=navBuild(col);markEnv(E.sc);E.sc.userData.nav=E.nav;E.sc.userData.env=col.children.slice();
+    E.fc.clear();E.ready=true;
+    const spots={};root.traverse(o=>{if(/^SPOT_/.test(o.name)){const v=new V3();o.getWorldPosition(v);spots[o.name.slice(5)]=v;}});E.spot=spots;
+    if(E.onReady)E.onReady(E);return E;})();
+  return E.loading;}
+envScene(PLAY,{sky:'#cfe3f3',fog:[45,160],sun:2.3,hemi:1.5,dir:[6,20,12],shadowR:12});
+envScene(NURSE,{sky:'#e9edf0',fog:null,sun:0.9,hemi:1.3,dir:[8,6,-2],shadowR:6,indoor:true});
 /* 病房（三天後）：獨立的小場景 */
 let WARD=null;
 function wardScene(){if(WARD)return WARD;const sc=new THREE.Scene();sc.background=new THREE.Color('#dfe4e6');
@@ -1626,10 +1663,11 @@ let player=kid(campus,LOOK(),[0,0,4.5],0);
 let VRM_ME=null;
 const PLACES=[
   {id:'push',name:'悠悅樓平台',icon:'🤲',x:0,z:-4.2},
+  {id:'slide',name:'遊樂器材區',icon:'🛝',x:9.0,z:3.0},
   {id:'race',name:'一樓教室走廊',icon:'🏃',x:-14.2,z:2.0},
 ];
 /* 之後的關卡（製作中） */
-const LOCKED=[{icon:'🛝',name:'遊戲場溜滑梯',title:'溜滑梯逆向爬'}];
+const LOCKED=[];
 PLACES.forEach(p=>{p.m=makeMarker(p.icon+' '+p.name);p.m.position.set(p.x,0,p.z);campus.add(p.m);});
 const arrow=new THREE.Group();{const sh=new THREE.Shape();sh.moveTo(0,0.42);sh.lineTo(0.34,0.02);sh.lineTo(0.13,0.02);sh.lineTo(0.13,-0.36);sh.lineTo(-0.13,-0.36);sh.lineTo(-0.13,0.02);sh.lineTo(-0.34,0.02);sh.closePath();
   const g=new THREE.ExtrudeGeometry(sh,{depth:0.08,bevelEnabled:true,bevelSize:0.02,bevelThickness:0.02,bevelSegments:1});g.translate(0,0,-0.04);
@@ -1822,19 +1860,52 @@ const _fe=new V3(),_ff=new V3();
 function camTP(){applyCam.fpb=false;camera.layers.enable(TPL);camera.layers.disable(FPL);}
 function applyCam(dt){const fpb=rig.fp&&S&&S.fpBody&&S.me&&S.me.kind==='vrm'&&S.me.root.parent===curScene;
   if(fpb!==applyCam.fpb){applyCam.fpb=fpb;camera.layers.enable(fpb?FPL:TPL);camera.layers.disable(fpb?TPL:FPL);}
-  if(fpb){const me=S.me,yaw=Math.atan2(rig.look.x-rig.pos.x,rig.look.z-rig.pos.z);me.root.visible=true;me.root.rotation.set(0,yaw,0);me.root.position.x=rig.pos.x;me.root.position.z=rig.pos.z;me.root.updateMatrixWorld(true);
+  if(fpb){const me=S.me,yaw=S.fpYaw??Math.atan2(rig.look.x-rig.pos.x,rig.look.z-rig.pos.z);me.root.visible=true;if(S.fpRoot){me.root.rotation.order='YXZ';me.root.rotation.set(S.fpPitch||0,yaw,0);me.root.position.copy(S.fpRoot);}else{me.root.rotation.order='XYZ';me.root.rotation.set(0,yaw,0);me.root.position.x=rig.pos.x;me.root.position.z=rig.pos.z;}me.root.updateMatrixWorld(true);
     me.B.head.getWorldPosition(_fe);_ff.set(Math.sin(yaw),0,Math.cos(yaw));_fe.addScaledVector(_ff,0.09);_fe.y+=0.055;camera.position.copy(_fe);}
   else camera.position.copy(rig.pos);let by=0,bx=0;
   if(rig.bob>0){rig.bobT+=dt*rig.bobF;const s=Math.sin(rig.bobT);by=s*rig.bob;bx=Math.cos(rig.bobT*0.5)*rig.bob*0.6;if(Math.sign(s)!==rig.lastS){rig.lastS=Math.sign(s);if(s<0)SFX.step(rig.bob>0.05);}}
   camera.position.y+=by;camera.position.x+=bx*0.3;if(rig.shake>0&&!RM){camera.position.x+=(Math.random()-.5)*rig.shake*0.3;camera.position.y+=(Math.random()-.5)*rig.shake*0.3;rig.shake=Math.max(0,rig.shake-dt*0.9);}
   camera.up.set(0,1,0);camera.lookAt(rig.look.x,rig.look.y+by*0.5,rig.look.z);camera.rotateZ(rig.roll);camera.updateMatrixWorld();occAdjust(dt);}
-function moveFP(to,dur,kind='run',look=null,ease=k=>k){rig.fp=true;const p0=rig.pos.clone(),l0=rig.look.clone();const d=new V3().subVectors(rig.look,rig.pos);const l1=look||to.clone().add(d);
+async function moveFP(to,dur,kind='run',look=null,ease=k=>k){
+  /* 第一人稱走路也避開柱子、溜滑梯支架等障礙：地面上的直線不通時，沿規劃好的路線分段走 */
+  if((kind==='walk'||kind==='run')&&envE().ready&&envE().sc===curScene&&Math.abs(to.y-rig.pos.y)<0.25){const a=new V3(rig.pos.x,0,rig.pos.z),pts=planPath(a,new V3(to.x,0,to.z));
+    if(pts.length>1){let L=0,p=a;const seg=pts.map(q=>{const d=Math.hypot(q.x-p.x,q.z-p.z);L+=d;p=q;return d;});
+      for(let i=0;i<pts.length;i++){const q=pts[i],last=i===pts.length-1,nx=last?null:pts[i+1];const tgt=new V3(q.x,to.y,q.z);
+        const lk=last?look:new V3(nx.x,to.y-0.05,nx.z).sub(tgt).setY(0).normalize().multiplyScalar(2).add(tgt).setY(to.y-0.1);
+        await moveFP0(tgt,dur*seg[i]/Math.max(0.01,L),kind,lk);}return;}}
+  return moveFP0(to,dur,kind,look,ease);}
+function moveFP0(to,dur,kind='run',look=null,ease=k=>k){rig.fp=true;const p0=rig.pos.clone(),l0=rig.look.clone();const d=new V3().subVectors(rig.look,rig.pos);const l1=look||to.clone().add(d);
   rig.bob=0;let gm=false;if(kind==='walk'||kind==='run'){const v=Math.hypot(to.x-p0.x,to.z-p0.z)/Math.max(0.05,dur),run=v>2.1;if(v>0.3){rig.bob=run?0.06:0.025;rig.bobF=2*PI*v/(run?0.95:0.55);}
     const me=S&&S.me;if(me&&v>0.3&&['idle','walk','run'].includes(me.pose)){me.gaitV=v;me.pose=run?'run':'walk';gm=true;}}
   return tween(dur,k=>{rig.pos.lerpVectors(p0,to,k);rig.look.lerpVectors(l0,l1,k);},ease).then(()=>{rig.bob=0;if(gm&&S&&S.me&&(S.me.pose==='walk'||S.me.pose==='run')){S.me.pose='idle';S.me.gaitV=null;}});}
 function camTo(pos,look,dur,ease=easeIO){const p0=rig.pos.clone(),l0=rig.look.clone(),r0=rig.roll;return tween(dur,k=>{rig.pos.lerpVectors(p0,pos,k);rig.look.lerpVectors(l0,look,k);rig.roll=lerp(r0,0,k);},ease);}
 function camCut(pos,look,fp=false){rig.fp=fp;_occ.set(0,0,0);rig.pos.copy(pos);rig.look.copy(look);rig.roll=0;rig.bob=0;}
-function walkTo(c,to,dur,pose='walk',o={}){const p0=c.root.position.clone();const dx=to.x-p0.x,dz=to.z-p0.z;if(Math.hypot(dx,dz)>0.01)c.root.rotation.y=Math.atan2(dx,dz);if(pose==='walk'||pose==='run'){const v=Math.hypot(dx,dz)/Math.max(0.05,dur);c.gaitV=v;pose=v>2.1?'run':'walk';}c.pose=pose;
+/* ---- 劇情走位避障：直線會穿過柱子、牆、花台時，在校園碰撞格上找路（A*），再拉直成最少轉折的路線 ---- */
+function obstAt(x,z,r=0.24){const E=envE();if(!E.ready)return false;if(x<E.X0||x>E.X1||z<E.Z0||z>E.Z1)return true;return navHit(E.nav,x,z,r,campusFloor(x,z));}
+function segClear(a,b,r=0.24){const L=Math.hypot(b.x-a.x,b.z-a.z),n=Math.max(1,Math.ceil(L/0.1));let y=campusFloor(a.x,a.z);
+  for(let i=1;i<=n;i++){const x=a.x+(b.x-a.x)*i/n,z=a.z+(b.z-a.z)*i/n,fy=campusFloor(x,z);if(Math.abs(fy-y)>0.42)return false;if(i<n-2&&i>2&&obstAt(x,z,r))return false;y=fy;}return true;}
+function planPath(a,b){if(!envE().ready||segClear(a,b))return [b.clone()];
+  const cs=0.2,pad=6,x0=Math.min(a.x,b.x)-pad,z0=Math.min(a.z,b.z)-pad,W=Math.ceil((Math.abs(a.x-b.x)+2*pad)/cs),H=Math.ceil((Math.abs(a.z-b.z)+2*pad)/cs);
+  const id=(i,j)=>j*W+i,cx=i=>x0+(i+0.5)*cs,cz=j=>z0+(j+0.5)*cs,si=Math.floor((a.x-x0)/cs),sj=Math.floor((a.z-z0)/cs),gi=Math.floor((b.x-x0)/cs),gj=Math.floor((b.z-z0)/cs);
+  const blk=new Int8Array(W*H).fill(-1),free=(i,j)=>{if(i<0||j<0||i>=W||j>=H)return false;const k=id(i,j);if(blk[k]<0)blk[k]=obstAt(cx(i),cz(j))?1:0;return !blk[k]||Math.hypot(i-si,j-sj)<2||Math.hypot(i-gi,j-gj)<2;};
+  const g=new Float32Array(W*H).fill(1e9),from=new Int32Array(W*H).fill(-1),open=[[0,si,sj]];g[id(si,sj)]=0;let found=false,it=0;
+  while(open.length&&it++<60000){let bi=0;for(let q=1;q<open.length;q++)if(open[q][0]<open[bi][0])bi=q;const [,i,j]=open.splice(bi,1)[0];if(i===gi&&j===gj){found=true;break;}
+    const gc=g[id(i,j)],fy=campusFloor(cx(i),cz(j));
+    for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const ni=i+di,nj=j+dj;if(!free(ni,nj))continue;if(di&&dj&&(!free(i+di,j)||!free(i,j+dj)))continue;
+      if(Math.abs(campusFloor(cx(ni),cz(nj))-fy)>0.42)continue;const ng=gc+(di&&dj?1.414:1),k=id(ni,nj);if(ng<g[k]){g[k]=ng;from[k]=id(i,j);open.push([ng+Math.hypot(ni-gi,nj-gj),ni,nj]);}}}
+  if(!found){console.warn('planPath: no route',a,b);return [b.clone()];}
+  const cells=[];for(let k=id(gi,gj);k>=0;k=from[k])cells.push(new V3(cx(k%W),0,cz(Math.floor(k/W))));cells.reverse();cells[0]=a.clone();cells[cells.length-1]=b.clone();
+  const out=[];let cur=a;let k=0;while(k<cells.length-1){let far=k+1;for(let q=cells.length-1;q>k+1;q--){if(segClear(cur,cells[q])){far=q;break;}}cur=cells[far];out.push(cur.clone());k=far;}
+  return out;}
+function freeNear(p){if(!obstAt(p.x,p.z,0.2))return p;for(let r=0.1;r<=1.2;r+=0.1)for(let a=0;a<16;a++){const x=p.x+Math.cos(a/16*PI*2)*r,z=p.z+Math.sin(a/16*PI*2)*r;if(!obstAt(x,z,0.2)&&Math.abs(campusFloor(x,z)-campusFloor(p.x,p.z))<0.1)return new V3(x,p.y,z);}return p;}
+function walkTo(c,to,dur,pose='walk',o={}){
+  if(envE().ready&&envE().sc===curScene&&!o.direct){to=freeNear(to);const pts=planPath(c.root.position,to);if(pts.length>1){
+    const p0=c.root.position.clone(),seg=[];let L=0,prev=p0;for(const p of pts){const d=Math.hypot(p.x-prev.x,p.z-prev.z);seg.push([prev,p,L,d]);L+=d;prev=p;}
+    if(pose==='walk'||pose==='run'){const v=L/Math.max(0.05,dur);c.gaitV=v;pose=v>2.1?'run':'walk';}c.pose=pose;const yaw0=c.root.rotation.y;
+    return tween(dur,k=>{const s=k*L;let sg=seg[seg.length-1];for(const q of seg){if(s<=q[2]+q[3]){sg=q;break;}}const u=sg[3]>1e-4?Math.min(1,(s-sg[2])/sg[3]):1;
+      c.root.position.lerpVectors(sg[0],sg[1],u);c.root.position.y=lerp(p0.y,to.y,k);const yaw=Math.atan2(sg[1].x-sg[0].x,sg[1].z-sg[0].z);
+      let dy=yaw-c.root.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));c.root.rotation.y+=dy*Math.min(1,0.35);},o.ease).then(()=>{if(!o.keep){c.pose='idle';c.gaitV=null;}});}}
+  const p0=c.root.position.clone();const dx=to.x-p0.x,dz=to.z-p0.z;if(Math.hypot(dx,dz)>0.01)c.root.rotation.y=Math.atan2(dx,dz);if(pose==='walk'||pose==='run'){const v=Math.hypot(dx,dz)/Math.max(0.05,dur);c.gaitV=v;pose=v>2.1?'run':'walk';}c.pose=pose;
   return tween(dur,k=>{c.root.position.lerpVectors(p0,to,k);if(o.yf)c.root.position.y=o.yf(c.root.position.z);},o.ease).then(()=>{if(!o.keep){c.pose='idle';c.gaitV=null;}});}
 function faceTo(c,x,z){c.root.rotation.y=Math.atan2(x-c.root.position.x,z-c.root.position.z);}
 function handTo(x,y,z,show=true){hand.visible=show;hand.userData.pos.set(x,y,z);}
@@ -1875,7 +1946,8 @@ async function runCase(id){
   await fade(1,300);LOAD.show(C);musicPlay('loading');ambience(null);const t0=performance.now();
   await Promise.race([musWait('loading'),sleep(1500)]);await sleep(120);
   LOAD.set(0.12,'角色準備中……');await nextFrame();await needRoles(C);
-  LOAD.set(0.45,'布置場景中……');await nextFrame();
+  if(C.prep)await C.prep();
+  LOAD.set(0.95,'布置場景中……');await nextFrame();
   S=C.build();S.C=C;S.phase='tempt';curScene=S.scene;S.scene.userData.env=null;if(!hand)hand=VRM_ME?makeHand('#ffe3d3',VRM_SLEEVE[MEID()]||'#ffffff'):makeHand(LOOK().skin);hand.visible=false;FX.hideAll();
   S.start();rig.fp=true;applyCam(0.016);
   LOAD.set(0.75,'準備畫面中……');await nextFrame();await warmScene(S.scene);
@@ -1927,7 +1999,7 @@ async function reward(C){GAME.state='reward:'+C.id;save.done[C.id]=true;persist(
 async function gameOver(C,o){GAME.state='over:'+C.id;stinger('lose');musicPlay('over');if(hand)hand.visible=false;
   rig.shake=0.4;SFX.clang();
   const a=await overlay(`<div class="rs-title">GAME OVER</div><div class="rs-sub">悲劇重演了……</div>
-    <div class="rs-main"><div class="rs-badge"><div class="fine"><small>${o.self||o.award||C.kind==='news'?'後果':'真實判決'}</small>${o.award||C.award}</div><div class="rs-get">${o.self?'自己也會受傷':o.award?'在轉角撞倒了同學':C.kind==='news'?'真實事件':'真實判決案例'}<b>${o.award?'':C.title}</b></div></div>
+    <div class="rs-main"><div class="rs-badge"><div class="fine"><small>${o.self||o.award||C.kind==='news'?'後果':'真實判決'}</small>${o.award||C.award}</div><div class="rs-get">${o.self?'自己也會受傷':o.award?(o.sub||'在轉角撞倒了同學'):C.kind==='news'?'真實事件':'真實判決案例'}<b>${o.award?'':C.title}</b></div></div>
     <div class="rs-info panel"><div class="why">❌ 你選了：「${o.t}」<br>${o.why}</div><div class="ds">${o.desc||C.desc}</div><div class="tip">🤔 想一想：${C.hint}</div>
     <div class="btns"><button class="btn gray" data-a="map">回到校園</button><button class="btn big" data-a="retry">再挑戰一次 ↻</button></div></div></div>`,'full lose over');
   if(a==='retry'){cleanupCase();await runCase(C.id);}else await backToMap();}
@@ -2014,17 +2086,27 @@ function cmRender(dt){if(!CM.ps.length)return;
 /* ---- shot lists per case (the director's plan) ---- */
 const mePose=p=>{const me=S.me;me.pose=me.kind==='vrm'?p:({grabLow:'reach',kick:'run'}[p]||p);};
 const DIR={
+  slide:{
+    insert:[S=>({shot:()=>aim(_c3.set(SL.x+0.25,0.9,SL.bot+1.2),_c1.set(SL.x,SL.deck+0.5,SL.top),40),tag:'滑道看起來很快就能爬到頂'}),
+      S=>({shot:SH.face(S.yu),tag:'上面的小宇在跟小美聊天'})],
+    run:S=>[{slot:'A',shot:()=>aim(_c3.set(SL.x-1.6,1.4,SL.bot-0.4),_c1.set(SL.x,0.8,SL.bot-1.0),42),fx:'speed',tag:'手腳並用往上爬',sfx:'嘰——'},{slot:'B',shot:SH.face(S.yu),tag:'小宇沒有看下面'}],
+    approach:(S,v)=>{if(v==='cut')return{pose:'idle',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(4.2,1.6,0.6),_c1.set(2.9,0.9,-0.9),42),tag:'在攀爬網上推擠',sfx:'擠——'},{slot:'B',shot:SH.face(S.kai),tag:'小凱'}],burst:{t:'危險！',icon:'⚠️'}};
+      return{pose:'crawl',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(SL.x+1.5,1.6,SL.top+1.6),_c1.set(SL.x,0.9,SL.top+0.9),44),tag:'小宇坐下來就滑',sfx:'咻——'},{slot:'B',shot:SH.face(S.yu),tag:'啊！讓開！'}],burst:{t:'危險！',icon:'⚠️'}};},
+    impact:S=>{if(S.v==='cut')return{ps:[{slot:'A',shot:SH.face(S.kai),fx:'impact',tag:'一腳踩空'},{slot:'B',shot:()=>aim(_c3.set(4.3,1.0,0.6),_c1.set(3.3,0.3,-0.6),42),fx:'impact',tag:'從網子上摔下來'}]};
+      return{ps:[{slot:'A',shot:()=>aim(_c3.set(SL.x-1.9,1.2,SL.top+1.9),_c1.set(SL.x-0.3,0.7,SL.top+1.2),42),fx:'impact',tag:'從滑道側邊翻落'},{slot:'B',shot:SH.face(S.yu),fx:'impact',tag:'小宇'},{slot:'C',shot:SH.face(S.kai),fx:'shock',em:'！！'}]};},
+    safe:S=>({pose:'idle',ps:[{slot:'A',shot:()=>aim(_c3.set(4.3,1.5,0.4),_c1.set(2.2,0.9,-1.1),42),fx:'glow',tag:'排隊爬攀爬網'},{slot:'B',shot:()=>aim(_c3.set(SL.x+1.4,1.3,SL.bot+0.8),_c1.set(SL.x,0.5,SL.bot-0.4),40),fx:'glow',tag:'前面的人離開才滑'}]}),
+  },
   race:{
     insert:[S=>({shot:SH.face(S.kai),tag:'小凱領先你半個身體'}),
       S=>({shot:()=>aim(_c3.set(cxAt(-0.8)+0.25,CR.fl+1.25,-0.8),_c1.set(-15.8,CR.fl+1.0,-6.6),44),tag:'轉角看不到對面'})],
     run:S=>[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(cxAt(k.z-3.4)+0.1,CR.fl+1.05,k.z-3.4),_c1.set(cxAt(k.z+0.4),CR.fl+0.85,k.z+0.4),42);},fx:'speed',tag:'在走廊上狂奔',sfx:'咚咚咚——'},
-      {slot:'B',shot:SH.part(S.kai,'leftFoot',{f:0.95,r:0.45,y:0.2,fov:40}),fx:'speed',tag:'腳步越來越快'}],
+      {slot:'B',shot:()=>{const k=S.kai.root.position,f=fwdOf(S.kai,_c2);aim(_c3.set(k.x+f.x*1.25+f.z*0.55,CR.fl+0.32,k.z+f.z*1.25-f.x*0.55),_c1.set(k.x+f.x*0.1,CR.fl+0.22,k.z+f.z*0.1),42);},fx:'speed',tag:'腳步越來越快'}],
     approach:(S,v)=>{if(v==='solo'||v==='fast')return{pose:v==='fast'?'walk':'idle',stage:null,ps:[
         {slot:'A',shot:()=>aim(_c3.set(-13.0,CR.fl+1.2,-7.6),_c1.set(-14.3,CR.fl+0.9,-7.4),46),tag:'轉角走過來的小美',sfx:'咚咚咚——'},{slot:'B',shot:SH.face(S.kai),fx:'speed',tag:'停不下來'}],burst:{t:'危險！',icon:'⚠️'}};
-      return{pose:'shove',stage:null,ps:[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(k.x+0.85,CR.fl+1.15,k.z+1.4),_c1.set(k.x+0.2,CR.fl+1.0,k.z+0.5),42);},fx:'speed',tag:'伸手推他的背',sfx:'推——'},
+      return{pose:'shove',stage:null,ps:[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(k.x-1.5,CR.fl+1.25,k.z+0.2),_c1.set(k.x+0.45,CR.fl+1.0,k.z),40);},fx:'speed',tag:'伸手推他的背',sfx:'推——'},
         {slot:'B',shot:SH.face(S.kai),tag:'小凱完全沒注意'}],burst:{t:'危險！',icon:'⚠️'}};},
     impact:S=>{if(S.v==='solo'||S.v==='fast')return{ps:[{slot:'A',shot:SH.face(S.mei),fx:'impact',tag:'小美'},{slot:'B',shot:()=>aim(_c3.set(-16.9,CR.fl+0.9,-4.6),_c1.set(-16.0,CR.fl+0.2,-6.3),42),fx:'impact',tag:'作業簿散了一地'}]};
-      return{ps:[{slot:'A',shot:()=>{const h=bonePos(S.kai,'head',_c1);aim(_c3.set(h.x+0.75,h.y+0.22,h.z+0.25),h,34);},fx:'impact',tag:'頭撞到地面'},{slot:'B',shot:SH.face(S.kai),fx:'impact',tag:'小凱'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]};},
+      return{ps:[{slot:'A',shot:()=>{const h=bonePos(S.kai,'head',_c1);aim(_c3.set(h.x-0.8,h.y+0.3,h.z+0.12),h,34);},fx:'impact',tag:'頭撞到地面'},{slot:'B',shot:()=>{const p=S.pack.getWorldPosition(_c1);aim(_c3.set(p.x-1.0,CR.fl+1.0,p.z+0.15),_c2.set(p.x+0.2,CR.fl+0.1,p.z),44);},fx:'impact',tag:'書包裡的課本掉了出來'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]};},
     safe:S=>({pose:'walk',ps:[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(cxAt(k.z-3)+0.2,CR.fl+1.15,k.z-3),_c1.set(cxAt(k.z+0.3),CR.fl+0.9,k.z+0.3),42);},fx:'glow',tag:'用走的，靠右走'},
       {slot:'B',shot:()=>{const m=S.mei.root.position;aim(_c3.set(m.x-1.1,CR.fl+1.3,m.z+1.4),_c1.set(m.x,CR.fl+1.0,m.z),42);},fx:'glow',tag:'轉角放慢腳步'}]}),
   },
@@ -2387,7 +2469,7 @@ async function walkPath(c,to,speed=1.0,o={}){const sc=c.root.parent,pts=navPath(
     const ty=Math.atan2(pts[i+1].x-pts[i].x,pts[i+1].z-pts[i].z);let dy=ty-c.root.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));c.root.rotation.y+=dy*0.18;});
   c._path=null;if(!o.keep){c.pose='idle';c.gaitV=null;}if(o.face)faceTo(c,o.face.x,o.face.z);return pts;}
 /* development checker: logs bodies that overlap static geometry or each other */
-const COL={on:false,log:[],skip:new Set(['fallBack','sumo','pushHold','shove','pull','lie','trip','hurtSit','hurtLeg','hurtArm','hurtMouth','bed','climb','jump','brace'])};
+const COL={on:false,log:[],skip:new Set(['slideSit','crawl','kneelUp','fallBack','sumo','pushHold','shove','pull','lie','trip','hurtSit','hurtLeg','hurtArm','hurtMouth','bed','climb','jump','brace'])};
 function colCheck(){if(!COL.on||!S||!curScene)return;const nav=navBuild(curScene),fl=S.floor||(()=>0),cs=[];
   LIVE.forEach(c=>{if(c.root.parent===curScene&&c.root.visible&&c.kind==='vrm')cs.push(c);});
   const nm=c=>Object.keys(CHAR).find(k=>CHAR[k]===c)||'?';
@@ -2399,7 +2481,7 @@ function colCheck(){if(!COL.on||!S||!curScene)return;const nav=navBuild(curScene
 
 /* ---- level loading screen: shown over a black stage while characters load, the scene is built and every shader is compiled,
    so the level starts only when it can draw its first frame without a stall ---- */
-const LOAD_TIPS={race:['走廊不奔跑、靠右走，轉角放慢腳步。','推人可能害別人一輩子受傷，也要負法律責任。','在走廊奔跑的人，就算被推，自己也要負一部分責任。'],push:['手掌互推、拉手比力氣，一鬆手就會往後倒。','頭撞到了，就算不痛，也要告訴老師和家人。','想比賽，可以玩猜拳、跳格子這些安全的遊戲。']};
+const LOAD_TIPS={slide:['從攀爬網或樓梯上、從滑道下，不從滑道往上爬。','坐著滑、腳朝下，滑之前先看下面有沒有人。','不插隊、不在遊具上推擠，看到別人這樣玩要提醒他。'],race:['走廊不奔跑、靠右走，轉角放慢腳步。','推人可能害別人一輩子受傷，也要負法律責任。','在走廊奔跑的人，就算被推，自己也要負一部分責任。'],push:['手掌互推、拉手比力氣，一鬆手就會往後倒。','頭撞到了，就算不痛，也要告訴老師和家人。','想比賽，可以玩猜拳、跳格子這些安全的遊戲。']};
 function loadingUI(){let el=document.getElementById('loadScr');if(el)return el;
   const st=document.createElement('style');st.textContent=`#loadScr{position:fixed;inset:0;z-index:45;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;
     background:radial-gradient(circle at 50% 35%,#24356f 0%,#141c3f 55%,#0b1028 100%);color:#fff;font-family:inherit;opacity:0;pointer-events:none;transition:opacity .45s}
@@ -2601,13 +2683,25 @@ CASES.push={id:'push',kind:'news',cmDanger:{pose:'pushHold',t:'危險！',icon:'
 const F_=h=>PF.fl+h;
 /* ================= 第三關：一樓教室走廊・走廊競速推人 ================= */
 /* 走廊中心線（地板高 0.25 m）：由北往南略帶弧度，到 z≈-5.5 轉角往東 */
-const CR={fl:0.25,line:[[10,-18.2],[8,-18.5],[6,-18.85],[4,-19.1],[1.2,-19.2],[-1.4,-18.55],[-4,-17.55],[-5.5,-16.9]],start:8.4};
+const CR={fl:0.25,line:[[10,-17.02],[9.5,-17.46],[9,-17.61],[8.5,-17.73],[8,-17.85],[7.5,-17.97],[7,-18.09],[6.5,-18.21],[6,-18.33],[5.5,-18.45],[5,-18.57],[4.5,-18.69],[4,-18.81],[3.5,-18.81],[3,-18.79],[2.5,-18.77],[2,-18.75],[1.5,-18.73],[1,-18.71],[0.5,-18.54],[0,-18.37],[-0.5,-18.2],[-1,-18.03],[-1.5,-17.86],[-2,-17.69],[-2.5,-17.52],[-3,-17.36],[-3.5,-17.19],[-4,-17.03],[-4.5,-16.86],[-5,-16.14],[-5.5,-15.43]],start:8.4};   /* 走廊中線：牆和柱子之間可走範圍的中間（掃描碰撞格後平滑），一路不碰柱子 */
 function cxAt(z){const L=CR.line;if(z>=L[0][0])return L[0][1];for(let i=1;i<L.length;i++){if(z>=L[i][0]){const [z0,x0]=L[i-1],[z1,x1]=L[i];return x1+(x0-x1)*(z-z1)/(z0-z1);}}return L[L.length-1][1];}
-const LANE={me:0.32,kai:-0.32};
+const LANE={me:0.1,kai:-0.1};   /* 走廊柱子之間只有一公尺多寬：兩人一前一後，左右只錯開一點 */
 function laneP(z,lane,out=new V3()){return out.set(cxAt(z)+lane,CR.fl,z);}
 /* 沿走廊移動角色（朝 -z 前進） */
 function glide(c,z0,z1,dur,pose,lane,ease=k=>k){c.pose=pose;c.gaitV=Math.abs(z1-z0)/dur;return tween(dur,k=>{const z=z0+(z1-z0)*ease(k);laneP(z,lane,c.root.position);const z2=z-0.6*Math.sign(z0-z1||1);c.root.rotation.y=Math.atan2(cxAt(z2)+lane-c.root.position.x,z2-z);});}
 function fpAt(z,lane,dz=-5,h=1.3){return [laneP(z,lane,new V3()).setY(CR.fl+h),new V3(cxAt(z+dz)+lane*0.5,CR.fl+h-0.12,z+dz)];}
+/* 小凱的書包：揹在背上（跟著胸口骨頭動），被推倒時課本從書包裡掉出來 */
+function makePack(c){const g=new THREE.Group();const col='#2f6fb8',dk='#244f86';
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.27,0.31,0.11),toon(col));body.castShadow=true;g.add(body);
+  const pk=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,0.04),toon(dk));pk.position.set(0,-0.07,-0.07);g.add(pk);
+  const flap=new THREE.Group();flap.position.set(0,0.155,0.055);g.add(flap);const fm=new THREE.Mesh(new THREE.BoxGeometry(0.275,0.02,0.13),toon(dk));fm.position.set(0,0,-0.065);flap.add(fm);
+  const fr=new THREE.Mesh(new THREE.BoxGeometry(0.275,0.12,0.02),toon(dk));fr.position.set(0,-0.06,-0.13);flap.add(fr);
+  const buckle=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.03,0.012),toon('#f2c94c'));buckle.position.set(0,-0.1,-0.142);flap.add(buckle);
+  for(const sx of [-0.08,0.08]){const st=new THREE.Mesh(new THREE.BoxGeometry(0.035,0.012,0.2),toon(dk));st.position.set(sx,0.17,0.1);st.rotation.x=0.25;g.add(st);}
+  g.userData.flap=flap;g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  /* 先擺在角色本地座標的背後，再掛到胸口骨頭上（attach 會保留世界位置） */
+  c.root.updateMatrixWorld(true);const ch=c.B.upperChest||c.B.chest||c.B.spine;const cp=ch.getWorldPosition(new V3());const back=new V3(0,0,-1).applyQuaternion(c.root.quaternion);
+  g.position.copy(cp).addScaledVector(back,0.15);g.position.y-=0.04;g.quaternion.copy(c.root.quaternion);campus.add(g);g.updateMatrixWorld(true);ch.attach(g);return g;}
 /* 掉出來的課本 */
 function makeBooks(sc,n=3){const cols=['#3f7fd6','#e2574c','#f2b632','#3fae6a','#9b6ad6'];const out=[];for(let i=0;i<n;i++){const g=new THREE.Group();
   const b=new THREE.Mesh(new THREE.BoxGeometry(0.19,0.018+0.006*i,0.26),toon(cols[i%cols.length]));b.castShadow=true;g.add(b);
@@ -2627,7 +2721,7 @@ function cctvShot(pos,look,mark){try{const W=512,H=288;if(!CCTV.rt){CCTV.rt=new 
 function showCCTV(s){const el=$('#cctv');if(!s){return;}el.querySelector('img').src=s.src;const r=el.querySelector('.ring');if(s.mark){r.style.display='';r.style.left=s.mark[0]+'%';r.style.top=s.mark[1]+'%';}else r.style.display='none';
   el.classList.remove('hide');requestAnimationFrame(()=>el.classList.add('on'));SFX.pop&&SFX.pop();}
 function hideCCTV(){const el=$('#cctv');el.classList.remove('on');setTimeout(()=>el.classList.add('hide'),400);}
-function raceReset(S){const F=CR.fl,k=S.kai,m=S.mei,t=S.tea;
+function raceReset(S){const F=CR.fl,k=S.kai,m=S.mei,t=S.tea;if(S.pack)S.pack.userData.flap.rotation.x=0;
   [k,m,t].forEach(c=>{c.root.rotation.order='XYZ';c.root.rotation.set(0,0,0);c.body&&c.body.rotation.set(0,0,0);c.gaitV=null;c.snap=true;});
   laneP(CR.start-1.1,LANE.kai,k.root.position);k.root.rotation.y=0.25;k.pose='idle';k.setMood('joy');k.root.visible=true;
   m.root.visible=false;m.carry=false;t.root.visible=false;S.books.forEach(b=>b.visible=false);S.mbooks.forEach(b=>b.visible=false);
@@ -2647,12 +2741,12 @@ CASES.race={id:'race',cmDanger:{pose:'run',t:'危險！',icon:'⚠️',tag:'伸�
     PLACES.forEach(p=>p.m.visible=false);arrow.visible=false;guide.visible=false;
     S.snapX=()=>({b:S.books.map(b=>[b.visible,...b.position.toArray(),b.rotation.y]),ko:S.kai.root.rotation.order});
     S.applyX=x=>{x.b.forEach((a,i)=>{const b=S.books[i];b.visible=a[0];b.position.set(a[1],a[2],a[3]);b.rotation.set(0,a[4],0);});S.kai.root.rotation.order=x.ko;};
-    S.start=()=>{raceReset(S);S.kai.setMood('joy');};
+    S.start=()=>{raceReset(S);S.kai.setMood('joy');if(!S.pack){S.kai.pose='idle';S.kai.snap=true;S.kai.root.updateMatrixWorld(true);S.pack=makePack(S.kai);}};
     S.cleanup=()=>{(S.wrap||[]).forEach(m=>m.parent&&m.parent.remove(m));if(S.wrap&&S.wrap.restore)S.wrap.restore();hideCCTV();
-      S.books.concat(S.mbooks).forEach(b=>b.parent&&b.parent.remove(b));S.mei.carry=false;
+      S.books.concat(S.mbooks).forEach(b=>b.parent&&b.parent.remove(b));if(S.pack&&S.pack.parent)S.pack.parent.remove(S.pack);S.mei.carry=false;
       PLACES.forEach(p=>p.m.visible=true);[S.kai,S.mei,S.tea].forEach(c=>{c.root.rotation.order='XYZ';if(c.root.parent)c.root.parent.remove(c.root);LIVE.delete(c);});S.me.root.visible=true;};
     return S;},
-  intro:[['nar','下課了，你和小凱走出教室，來到一樓走廊。'],
+  intro:[['nar','放學了，你和小凱揹著書包走出教室，來到一樓走廊。'],
     ['xiaokai','我們來比賽！看誰先跑到走廊轉角，輸的人幫對方揹便當盒！'],['me','好啊，預備——'],S=>{const k=S.kai;laneP(CR.start-0.25,LANE.kai,k.root.position);k.root.rotation.y=PI;k.pose='brace';const [p,l]=fpAt(CR.start,LANE.me,-4);camTo(p,l,0.5);},['xiaokai','起跑！'],
     ()=>FX.devilIn(),['devil','衝啊！走廊又沒什麼人，跑快一點！']],
   steps:[
@@ -2671,18 +2765,19 @@ CASES.race={id:'race',cmDanger:{pose:'run',t:'危險！',icon:'⚠️',tag:'伸�
     SFX.drive();rig.shake=0.25;S.cctv=cctvShot(new V3(cxAt(-1.2)-0.55,F+2.75,-1.2),new V3(cxAt(3.4),F+0.9,3.4),bonePos(S.me,'rightHand',new V3()));
     /* 小凱往前撲倒，頭側面撞到地面，課本從書包掉出來 */
     k.pose='trip';k.setMood('surprised');k.root.rotation.order='YXZ';const q0=k.root.position.clone(),yaw=k.root.rotation.y;let hit=false;
-    tween(0.4,()=>{},);scatterBooks(S.books,q0.clone().setY(F+1.0),new V3(Math.sin(yaw),0,Math.cos(yaw)),1.0,0.8);
+    const pp=S.pack?S.pack.getWorldPosition(new V3()):q0.clone().setY(F+1.0);if(S.pack)tween(0.25,q=>{S.pack.userData.flap.rotation.x=-1.9*q;});
+    scatterBooks(S.books,pp,new V3(Math.sin(yaw),0,Math.cos(yaw)),1.0,0.8);SFX.pop&&setTimeout(()=>SFX.pop(),500);
     await tween(0.7,q=>{const e=easeI(q);k.root.rotation.set((PI/2-0.06)*e,yaw,0.25*e);k.root.position.set(q0.x+Math.sin(yaw)*0.55*q,q0.y+0.1*e,q0.z+Math.cos(yaw)*0.55*q);
       rig.look.lerp(_tp.set(k.root.position.x+Math.sin(yaw)*1.0*e,F+0.25+0.8*(1-e),k.root.position.z+Math.cos(yaw)*1.0*e),0.25);
       if(!hit&&q>0.88){hit=true;FX.devilOut();impact();SFX.crack();}});
     SFX.thud();rig.shake=0.4;k.pose='lie';k.setMood('hurt');await wait(1.1);await fade(1,350);
     S.me.root.visible=true;laneP(3.4,LANE.me,S.me.root.position);S.me.root.rotation.set(0,PI,0);S.me.pose='point';S.me.setMood('surprised');S.me.gaitV=null;
     camCut(new V3(cxAt(-0.9)+0.15,F+1.7,-0.9),new V3(cxAt(2.6),F+0.45,2.6));await fade(0,350);},
-  after:[['nar','小凱趴在地上一動也不動，你的手還停在半空中。'],S=>{S.me.pose='lean';S.me.setMood('sad');},['me','小凱？小凱！你不要嚇我！'],
-    async S=>{const t=S.tea,k=S.kai;t.root.visible=true;t.root.position.set(cxAt(6.2)-0.4,CR.fl,6.2);t.setMood('surprised');await walkTo(t,new V3(cxAt(0.6)-0.55,CR.fl,0.6),1.8,'run');faceTo(t,k.root.position.x,k.root.position.z);t.pose='lean';},
+  after:[['nar','小凱整個人往前撲倒，書包裡的課本掉了一地。他趴在地上一動也不動，你的手還停在半空中。'],S=>{S.me.pose='lean';S.me.setMood('sad');},['me','小凱？小凱！你不要嚇我！'],
+    async S=>{const t=S.tea,k=S.kai;t.root.visible=true;t.root.position.set(cxAt(6.2),CR.fl,6.2);t.setMood('surprised');await walkTo(t,new V3(cxAt(0.6)-0.55,CR.fl,0.6),1.8,'run');faceTo(t,k.root.position.x,k.root.position.z);t.pose='lean';},
     ['teacher','不要動他！你快去健康中心叫人，老師打一一九！'],()=>cmAmb(),['nar','救護車很快就趕到了，把小凱送到醫院。'],()=>cmHide(),S=>raceWard(S)],
   afterShort:[S=>{S.me.pose='lean';},['me','小凱？小凱！你不要嚇我！'],
-    async S=>{const t=S.tea,k=S.kai;t.root.visible=true;t.root.position.set(cxAt(6.2)-0.4,CR.fl,6.2);await walkTo(t,new V3(cxAt(0.6)-0.55,CR.fl,0.6),1.8,'run');faceTo(t,k.root.position.x,k.root.position.z);t.pose='lean';},
+    async S=>{const t=S.tea,k=S.kai;t.root.visible=true;t.root.position.set(cxAt(6.2),CR.fl,6.2);await walkTo(t,new V3(cxAt(0.6)-0.55,CR.fl,0.6),1.8,'run');faceTo(t,k.root.position.x,k.root.position.z);t.pose='lean';},
     ['teacher','不要動他！老師馬上打一一九！'],()=>cmAmb(),['nar','救護車很快就到了，把小凱送到醫院。'],()=>cmHide()],
   regret:[['me','如果那時候，我沒有伸手就好了……'],()=>FX.devilIn(),['devil','是他自己說要比賽的，又不是你一個人的錯。']],
   angel:[['angel','走廊不是賽跑場，轉角也看不到對面的人。伸手推人，可能害朋友一輩子受傷。'],['angel','我讓時間倒轉，回到小凱說要比賽的時候。這一次，請你自己選。']],
@@ -2698,8 +2793,8 @@ CASES.race={id:'race',cmDanger:{pose:'run',t:'危險！',icon:'⚠️',tag:'伸�
     await sayAll([['xiaokai','好啦，那體育課再比！反正我一定贏。']],S);
     /* 兩人靠右慢慢走，小美從轉角抱著作業簿走過來，大家都平安走過 */
     S.me.pose='walk';m.root.visible=true;m.root.rotation.order='XYZ';m.root.position.set(-13.4,F,-7.6);meiCarry(S,true);m.setMood('joy');
-    const W=5.2;walkTo(m,new V3(-16.4,F,-5.9),W*0.8,'walk').then(()=>{m.root.position.set(-16.4,F,-5.9);walkTo(m,new V3(cxAt(-2.2)-0.3,F,-2.2),1.6,'walk').then(()=>{faceTo(m,cxAt(-1)+0.3,-1);m.pose='idle';});});
-    k.root.rotation.y=PI;await Promise.all([glide(k,k.root.position.z,-0.9,W,'walk',-0.15),tween(W,q=>{const z=CR.start+(0.1-CR.start)*q;const [p,l]=fpAt(z,0.45,-4,1.3);p.y+=Math.abs(Math.sin(q*W*5))*0.02;rig.pos.copy(p);rig.look.copy(l);})]);
+    const W=5.2;walkTo(m,new V3(-16.2,F,-5.6),W*0.75,'walk').then(()=>{walkTo(m,new V3(cxAt(-2.4)+0.15,F,-2.4),1.7,'walk').then(()=>{faceTo(m,cxAt(-1)+0.3,-1);m.pose='idle';});});
+    k.root.rotation.y=PI;await Promise.all([glide(k,k.root.position.z,-0.9,W,'walk',-0.12),tween(W,q=>{const z=CR.start+(0.1-CR.start)*q;const [p,l]=fpAt(z,0.1,-4,1.3);p.y+=Math.abs(Math.sin(q*W*5))*0.02;rig.pos.copy(p);rig.look.copy(l);})]);
     k.pose='idle';faceTo(k,m.root.position.x,m.root.position.z);S.me.pose='idle';
     await camTo(rig.pos.clone(),new V3(m.root.position.x,F+1.1,m.root.position.z),0.6);},
   safeLines:[['xiaomei','幸好你們沒有用跑的，不然我一定被撞倒。'],
@@ -2734,6 +2829,174 @@ async function raceWard(S){const rec=REC;REC=null;const k=S.kai,t=S.tea,me=S.me;
   await fade(1,600);(S.wrap||[]).forEach(o=>o.parent&&o.parent.remove(o));if(S.wrap&&S.wrap.restore)S.wrap.restore();S.wrap=null;
   [k,t,me].forEach(c=>{W.remove(c.root);campus.add(c.root);c.snap=true;});curScene=campus;k.root.visible=false;t.root.visible=false;me.root.visible=false;me.pose='idle';
   const [p]=fpAt(3.6,LANE.me*0.5,-3,1.3);camCut(p,new V3(cxAt(1.2),CR.fl+0.3,1.2),true);REC=rec;S.noRec=true;await fade(0,600);}
+
+/* ================= 第二關：遊樂器材區・溜滑梯逆向爬 ================= */
+/* 遊具：西邊是塔台（平台高 1.09 m），波浪滑梯從塔台往南滑到地面；東邊是攀爬網，從地面爬到平台。上去的正確路線是攀爬網。 */
+const SL={x:-1.3,top:0.62,bot:3.1,deck:1.09,netX0:2.9,netX1:1.72,netZ:-1.1,prof:null};
+/* 滑道表面高度（在模型載入時用射線量好，存成表） */
+function slideProfile(){const E=PLAY,rc=new THREE.Raycaster();rc.ray.direction.set(0,-1,0);const ms=E.visM.filter(m=>{for(let p=m;p;p=p.parent)if(/WaveSlide/.test(p.name||''))return true;return false;});const out=[];
+  for(let z=0.4;z<=3.3;z+=0.05){rc.ray.origin.set(SL.x,3,z);const h=rc.intersectObjects(ms,false)[0];out.push([z,h?h.point.y:null]);}
+  const ok=out.filter(p=>p[1]!=null&&p[1]<SL.deck+0.1);   /* 頂端的拱形罩不算滑道 */SL.prof=ok;if(ok.length){SL.top=ok[0][0];SL.bot=ok[ok.length-1][0];}return ok;}
+function slideY(z){const P=SL.prof;if(!P||!P.length)return 0;if(z<=P[0][0])return P[0][1];for(let i=1;i<P.length;i++)if(z<=P[i][0]){const [z0,y0]=P[i-1],[z1,y1]=P[i];return y0+(y1-y0)*(z-z0)/(z1-z0);}return P[P.length-1][1];}
+function slidePitch(z){return Math.atan2(slideY(z-0.15)-slideY(z+0.15),0.3);}   /* 往上（-z）的仰角 */
+/* 坐在滑道上（腳朝下、往 +z 滑）；c.root 放在滑道表面 */
+function sitOnSlide(c,z){c.root.rotation.order='YXZ';c.root.position.set(SL.x,slideY(z)+0.02,z);c.root.rotation.set(slidePitch(z),0,0);c.pose='slideSit';}
+/* 在滑道上往上爬（頭朝 -z） */
+function crawlOnSlide(c,z,dx=0){c.root.rotation.order='YXZ';c.root.position.set(SL.x+dx,slideY(z)+0.02,z);c.root.rotation.set(-slidePitch(z),PI,0);c.pose='crawl';}
+/* 主角的固定板與三角巾（右前臂） */
+/* 主角的固定板與三角巾（右手骨折）：右前臂橫在胸前，前臂纏上固定板與紗布；三角巾兜住前臂，綁帶繞過左肩、脖子後面、右肩 */
+async function wearSling(c){const out=[];c.sling=true;out.restore=()=>{c.sling=false;};const fa=c.B&&c.B.rightLowerArm,hd=c.B&&c.B.rightHand,ch=c.B&&(c.B.upperChest||c.B.chest);if(!fa||!hd||!ch)return out;
+  c.snap=true;await nextFrame();await nextFrame();c.root.updateMatrixWorld(true);
+  const ws=fa.getWorldScale(new V3()),L=fa.getWorldPosition(new V3()).distanceTo(hd.getWorldPosition(new V3()));
+  const putB=(mesh,pos,rot)=>{fa.add(mesh);mesh.scale.multiply(new V3(1/ws.x,1/ws.y,1/ws.z));const d=hd.position.clone().normalize();mesh.position.copy(d.multiplyScalar(pos/ws.x));if(rot)mesh.quaternion.copy(rot);out.push(mesh);};
+  const ax=hd.position.clone().normalize(),qa=new THREE.Quaternion().setFromUnitVectors(new V3(0,1,0),ax);
+  const splint=new THREE.Mesh(new THREE.CylinderGeometry(0.043,0.04,L*0.9,16),toon('#f4f2ea'));putB(splint,L*0.5,qa);
+  for(const f of [0.15,0.5,0.85]){const w=new THREE.Mesh(new THREE.CylinderGeometry(0.047,0.047,0.018,16),toon('#9fb8cf'));putB(w,L*f,qa);}
+  /* 以胸口為基準的三角巾 */
+  const cs=ch.getWorldScale(new V3()),toC=v=>ch.worldToLocal(v.clone());const P=n=>c.B[n]?c.B[n].getWorldPosition(new V3()):null;
+  const e=toC(P('rightLowerArm')),h=toC(P('rightHand')),mid=e.clone().lerp(h,0.5),dir=h.clone().sub(e),len=dir.length();dir.normalize();
+  const pouch=new THREE.Mesh(new THREE.SphereGeometry(1,24,12,0,PI*2,PI*0.45,PI*0.55),toon('#f7f6f1'));pouch.material.side=THREE.DoubleSide;
+  pouch.scale.set(0.075/cs.x,0.085/cs.y,(len*0.62)/cs.z);pouch.quaternion.setFromUnitVectors(new V3(0,0,1),dir);pouch.position.copy(mid).add(new V3(0,0.035/cs.y,0));ch.add(pouch);out.push(pouch);
+  const ls=P('leftShoulder')||P('leftUpperArm'),rs=P('rightShoulder')||P('rightUpperArm'),nk=P('neck');
+  if(ls&&rs&&nk){const up=v=>toC(v).add(new V3(0,0.045/cs.y,0));const back=toC(nk).add(new V3(0,0.03/cs.y,-0.045/cs.z));
+    const pts=[h.clone().add(new V3(0,0.03/cs.y,0)),up(ls),back,up(rs),e.clone().add(new V3(0,0.03/cs.y,0))];
+    const tube=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),40,0.016/cs.x,8,false),toon('#f7f6f1'));ch.add(tube);out.push(tube);}
+  return out;}
+CASES.slide={id:'slide',kind:'news',cmDanger:{pose:'crawl',t:'危險！',icon:'⚠️',tag:'從滑道往上爬',sfx:'咻——',vtag:'正要滑下來的小宇'},
+  mock:'你又被我騙了！從滑道往上爬，手都摔斷了！現在大家都不敢玩溜滑梯了！',roles:['xiaokai','xiaoyu','xiaomei','teacher'],amb:'plaza',no:2,ref:'',title:'溜滑梯逆向爬',icon:'🛝',badge:'遊具安全徽章',badgeIcon:'🛝',
+  desc:'一位四年級男生為了證明自己手腳快，從滑道往上爬，其他同學也跟著學，結果和正要滑下來的同學互撞、摔落，當場手骨折。之後下課，沒有人敢去玩溜滑梯。',award:'手骨折',
+  preview:'小凱說你手腳最慢，你想證明給他看……',hint:'排隊等溜滑梯太慢了，你會怎麼做？',
+  lesson:'從攀爬網或樓梯上、從滑道下，不從滑道往上爬。坐著滑、腳朝下，前面的人離開才滑。不插隊、不在遊具上推擠。',
+  async prep(){LOAD.set(0.5,'下載遊樂器材區……');await loadEnv(PLAY,f=>LOAD.set(0.5+f*0.3,'下載遊樂器材區……'));if(!SL.prof)slideProfile();
+    LOAD.set(0.82,'下載保健室……');await loadEnv(NURSE,f=>LOAD.set(0.82+f*0.12,'下載保健室……'));},
+  build(){const sc=PLAY.sc,D=SL.deck;const S={scene:sc};
+    S.kai=npc(sc,'xiaokai',[3.6,0,0.35],PI);S.yu=npc(sc,'xiaoyu',[-1.3,D,-0.3],PI);S.mei=npc(sc,'xiaomei',[-1.25,D,-1.2],0);S.tea=npc(sc,'teacher',[7.5,0,3.6],-PI/2);
+    S.me=meChar(sc,[3.75,0,-1.1],-PI/2);S.me.root.visible=false;S.tea.root.visible=false;
+    S.fpBody=S.me.kind==='vrm';S.actors=[S.kai,S.yu,S.mei,S.tea,S.me];S.victim=S.me;S.floor=(x,z)=>campusFloor(x,z);S.eye=1.3;Object.assign(CHAR,{xiaokai:S.kai,xiaoyu:S.yu,xiaomei:S.mei,teacher:S.tea,me:S.me});
+    S.snapX=()=>({yr:[S.yu.root.rotation.order,S.yu.root.rotation.x],fr:S.fpRoot?S.fpRoot.toArray():null,fp:S.fpPitch||0,fy:S.fpYaw??null});
+    S.applyX=x=>{S.yu.root.rotation.order=x.yr[0];S.fpRoot=x.fr?new V3().fromArray(x.fr):null;S.fpPitch=x.fp;S.fpYaw=x.fy;};
+    S.start=()=>slideReset(S);
+    S.cleanup=()=>{slideUnwear(S);S.fpRoot=null;S.fpYaw=null;[S.kai,S.yu,S.mei,S.tea].forEach(c=>{c.root.rotation.order='XYZ';if(c.root.parent)c.root.parent.remove(c.root);LIVE.delete(c);});
+      const me=S.me;me.root.rotation.order='XYZ';me.root.parent&&me.root.parent.remove(me.root);campus.add(me.root);me.root.visible=true;};
+    return S;},
+  intro:[['nar','下課了，你和小凱在遊樂器材區，排隊等著爬攀爬網上溜滑梯。小宇已經在上面的平台了。'],
+    ['xiaokai','排隊好慢喔。你不是說你手腳最快？我才不信。'],['me','誰說的？我可以證明給你看。'],
+    ()=>FX.devilIn(),['devil','幹嘛排隊爬網子？直接從滑道爬上去！又快又帥，證明給小凱看！']],
+  steps:[
+    {lines:[['nar','溜滑梯的滑道就在旁邊，從下面看，好像很快就能爬到頂。']],devil:'走啊！去滑道下面，從那裡爬上去！',
+      act:async(S,v)=>{FX.devilOut();const k=S.kai;
+        if(v==='cut'){walkTo(k,new V3(3.05,0,-0.75),1.0,'walk');await moveFP(new V3(3.2,1.3,-1.25),1.0,'walk',new V3(1.6,1.5,-1.15));return;}
+        walkTo(k,new V3(-0.55,0,4.15),3.4,'run');await moveFP(new V3(-1.12,1.3,4.15),3.2,'run',new V3(SL.x,0.9,1.2));
+        await camTo(new V3(-1.15,1.3,4.0),new V3(SL.x,1.25,0.2),0.6);}},
+    {lines:[['me','看好了，我從這裡爬上去最快！'],['xiaokai','等我！我也要爬！']],devil:'快爬！趁上面的人還沒滑下來！',
+      act:async(S,v)=>{FX.devilOut();if(v==='cut')return;const me=S.me,k=S.kai,yu=S.yu;
+        /* 手腳並用，從滑道底部往上爬：主角的身體貼著滑道，鏡頭在主角眼睛 */
+        rig.fp=true;S.fpYaw=PI;S.fpRoot=new V3(SL.x,slideY(SL.bot-0.2)+0.02,SL.bot-0.2);S.fpPitch=-slidePitch(SL.bot-0.2);me.root.visible=true;me.pose='crawl';me.crawlF=7;
+        crawlOnSlide(k,SL.bot+0.35,0.1);k.crawlF=7;const z0=SL.bot-0.2,z1=SL.top+1.15;S.cz=z1;
+        await tween(2.6,q=>{const z=z0+(z1-z0)*q;S.fpRoot.set(SL.x,slideY(z)+0.02,z);S.fpPitch=-slidePitch(z);crawlOnSlide(k,Math.min(SL.bot+0.3,z+0.95),0.1);rig.look.set(SL.x,SL.deck+1.0,SL.top-0.6);});
+        /* 平台上的小宇背對滑道跟小美說話，轉身坐下就滑，沒看下面 */
+        faceTo(yu,SL.x,SL.top+0.3);await wait(0.2);sitOnSlide(yu,SL.top+0.05);yu.setMood('joy');}}],
+  keyIdx:0,
+  async tragedy(S,v){S.v=v;if(v==='cut')return slideCut(S);
+    const me=S.me,k=S.kai,yu=S.yu,mei=S.mei,z1=S.cz||SL.top+1.15;yu.setMood('surprised');
+    const za=SL.top+0.05,zb=z1-0.72;
+    await tween(0.45,q=>{sitOnSlide(yu,za+(zb-za)*easeI(q));rig.look.lerp(_tp.set(SL.x,yu.root.position.y+0.6,yu.root.position.z),0.3);});
+    /* 3) 小宇的腳撞上主角的肩膀，主角從滑道側邊翻落 */
+    impact();SFX.crack&&SFX.crack();rig.shake=0.45;me.root.visible=false;S.fpRoot=null;S.fpYaw=null;const p0=rig.pos.clone();
+    await tween(0.55,q=>{const e=easeI(q);rig.pos.set(p0.x-1.25*q,p0.y+(0.25*Math.sin(q*PI))-(p0.y-0.45)*e,p0.z+0.15*q);rig.roll=-1.1*e;rig.look.set(rig.pos.x-1.2,0.1+0.6*(1-e),rig.pos.z+1.5);});
+    SFX.thud();rig.shake=0.5;
+    sitOnSlide(yu,zb);yu.pose='slideSit';
+    await wait(1.0);await fade(1,350);rig.roll=0;
+    /* 第三人稱：主角坐在滑道旁邊，抱著右手 */
+    me.root.visible=true;me.root.rotation.order='XYZ';me.root.rotation.set(0,PI/2+0.4,0);me.root.position.set(-2.45,0,z1+0.2);me.pose='hurtArm';me.setMood('hurt');me.snap=true;
+    k.root.rotation.order='XYZ';k.root.rotation.set(0,0,0);k.root.position.set(-0.3,0,z1+1.1);faceTo(k,-2.45,z1+0.2);k.pose='idle';k.setMood('surprised');k.snap=true;
+    yu.root.rotation.order='XYZ';yu.root.rotation.set(0,0,0);yu.root.position.set(-0.4,0,SL.bot+0.5);faceTo(yu,-2.45,z1+0.2);yu.pose='idle';yu.setMood('surprised');yu.snap=true;
+    rig.fp=false;camCut(new V3(-3.9,1.35,z1+2.0),new V3(-2.3,0.45,z1+0.1));await fade(0,350);},
+  after:[['me','啊——我的手！好痛！'],S=>{S.kai.pose='point';},['xiaokai','你的手彎得好怪！老師！王老師！'],
+    async S=>{const t=S.tea;t.root.visible=true;t.root.position.set(6.5,0,3.8);t.setMood('surprised');S.kai.pose='idle';await walkTo(t,new V3(-2.1,0,SL.top+2.25),2.4,'run');faceTo(t,-2.45,SL.top+1.35);t.pose='lean';},
+    ['teacher','手先不要動！老師先帶你去保健室。'],S=>slideNurse(S)],
+  afterShort:[['me','啊——我的手！好痛！'],
+    async S=>{const t=S.tea;t.root.visible=true;t.root.position.set(6.5,0,3.8);await walkTo(t,new V3(-2.1,0,SL.top+2.25),2.4,'run');faceTo(t,-2.45,SL.top+1.35);t.pose='lean';},
+    ['teacher','手先不要動！老師先帶你去保健室，也通知你的家人。']],
+  regret:[['me','我只是想證明我手腳很快……'],()=>FX.devilIn(),['devil','是小宇自己不看下面就滑下來，又不是你的錯。']],
+  angel:[['angel','溜滑梯是從上面滑下來的，從滑道往上爬，就會和滑下來的人撞在一起。'],['angel','我讓時間倒轉，回到你想爬滑道的那一刻。這一次，請你自己選。']],
+  keyLines:[S=>{slideReset(S);},['xiaokai','你不是說你手腳最快？我才不信。'],['angel','這一次，你可以自己選。想一想，要怎麼上溜滑梯才安全？']],
+  key:{q:'小凱說你手腳很慢，你會怎麼做？',opts:[
+    {t:'我們排隊從攀爬網上去。要比快，下次體育課跑步再比。',ok:true},
+    {t:'從滑道爬上去最快！',v:'climb',after:'你衝到滑道下面，手腳並用往上爬。上面的小宇沒看到你，坐下來就滑了下來。',why:'滑道是從上往下滑的，往上爬一定會和滑下來的人撞在一起，從高處摔下來。'},
+    {t:'排隊太慢了，我從前面插隊爬上去。',v:'cut',award:'小凱從攀爬網摔下來',sub:'在遊具上推擠害同學受傷',mock:'你又被我騙了！在攀爬網上推來推去，小凱就摔下來了！',
+      after:'你從前面插隊，和小凱在攀爬網上你推我擠。',why:'在遊具上插隊、推擠，很容易有人從高處摔下來。',
+      lines:[['xiaokai','哇啊——'],['nar','小凱一腳踩空，從攀爬網上摔了下來。'],async S=>{const t=S.tea;t.root.visible=true;t.root.position.set(6.5,0,3.8);await walkTo(t,new V3(3.7,0,-0.3),1.6,'run');faceTo(t,3.3,-0.75);t.pose='lean';},
+        ['teacher','在遊具上推擠，也會摔下來。小凱，腳先不要動，老師看一下。']]}]},
+  async safe(S){const me=S.me,k=S.kai,yu=S.yu,D=SL.deck;
+    await sayAll([['xiaokai','好啦，那就排隊。']],S);
+    /* 小宇先滑下來、離開滑道口 */
+    await camTo(new V3(3.6,1.4,-1.1),new V3(SL.x,0.8,1.6),0.6);
+    faceTo(yu,SL.x,SL.top+0.3);await wait(0.2);sitOnSlide(yu,SL.top+0.05);yu.setMood('joy');
+    await tween(1.4,q=>{sitOnSlide(yu,SL.top+0.05+(SL.bot-SL.top-0.1)*easeIO(q));});
+    yu.root.rotation.order='XYZ';yu.root.rotation.set(0,0,0);yu.root.position.set(SL.x,0,SL.bot+0.35);yu.pose='idle';walkTo(yu,new V3(0.6,0,3.6),1.6,'walk');
+    /* 主角爬攀爬網到平台，再走到塔台、坐下來滑 */
+    me.pose='climb';
+    await moveFP(new V3(2.55,1.6,-1.1),0.9,'walk',new V3(1.4,1.55,-1.1));
+    await tween(2.2,q=>{me.climbK=q*4;rig.pos.set(2.55-(2.55-1.55)*q,1.6+(D+1.25-1.6)*q,-1.1);rig.look.set(0.4,D+1.1,-1.1);});me.climbK=null;me.pose='idle';
+    await moveFP(new V3(-0.2,D+1.25,-1.05),1.6,'walk',new V3(-1.3,D+1.1,-0.4));
+    await moveFP(new V3(SL.x,D+1.25,-0.45),1.0,'walk',new V3(SL.x,0.6,2.6));
+    /* 坐下來、腳朝下，看清楚下面沒人才滑 */
+    S.fpYaw=0;S.fpPitch=slidePitch(SL.top+0.05);S.fpRoot=new V3(SL.x,slideY(SL.top+0.05)+0.02,SL.top+0.05);me.pose='slideSit';rig.look.set(SL.x,0.2,SL.bot+1.5);await wait(0.8);
+    await tween(1.6,q=>{const z=SL.top+0.05+(SL.bot-SL.top-0.2)*easeIO(q);S.fpRoot.set(SL.x,slideY(z)+0.02,z);S.fpPitch=slidePitch(z);rig.look.set(SL.x,0.3,z+2.2);});
+    S.fpRoot=null;S.fpYaw=null;me.pose='idle';me.root.rotation.order='XYZ';
+    await moveFP(new V3(-0.2,1.3,SL.bot+0.9),0.9,'walk',new V3(1.2,1.0,3.4));
+    k.root.position.set(SL.x,0,SL.bot+0.4);k.pose='idle';walkTo(k,new V3(0.55,0,SL.bot+1.0),1.2,'walk');
+    await camTo(rig.pos.clone(),new V3(0.6,1.0,3.6),0.6);},
+  safeLines:[['xiaoyu','剛剛我都沒看下面，幸好你們沒有從滑道爬上來。'],S=>{faceTo(S.kai,rig.pos.x,rig.pos.z);S.kai.setMood('joy');},['xiaokai','好吧，下次體育課我們比跑步！'],
+    async S=>{const t=S.tea;t.root.visible=true;t.root.position.set(6.5,0,3.8);t.setMood('joy');await walkTo(t,new V3(1.6,0,4.0),2.2,'walk');faceTo(t,rig.pos.x,rig.pos.z);await camTo(rig.pos.clone(),new V3(t.root.position.x,1.45,t.root.position.z),0.6);},
+    ['teacher','溜滑梯的規則是：從攀爬網上、從滑道下、坐著滑，前面的人離開才滑。你們今天全部做到了。']],
+};
+{const r=CASES.race;delete CASES.race;CASES.race=r;}   /* 關卡順序：第一關、第二關、第三關 */
+function slideReset(S){const D=SL.deck,k=S.kai,yu=S.yu,mei=S.mei,t=S.tea,me=S.me;slideUnwear(S);S.fpRoot=null;S.fpYaw=null;S.fpPitch=0;
+  [k,yu,mei,t].forEach(c=>{c.root.rotation.order='XYZ';c.root.rotation.set(0,0,0);c.body&&c.body.rotation.set(0,0,0);c.gaitV=null;c.snap=true;c.root.visible=true;});
+  k.root.position.set(3.6,0,0.35);faceTo(k,3.75,-1.1);k.pose='idle';k.setMood('');
+  yu.root.position.set(-1.3,D,-0.25);faceTo(yu,-1.25,-1.2);yu.pose='idle';yu.setMood('joy');
+  mei.root.position.set(-1.25,D,-1.2);faceTo(mei,-1.3,-0.25);mei.pose='idle';mei.setMood('joy');t.root.visible=false;
+  me.pose='idle';me.root.rotation.order='XYZ';rig.roll=0;camCut(new V3(3.75,1.3,-1.1),new V3(3.6,1.15,0.35),true);}
+function slideUnwear(S){(S.gear||[]).forEach(m=>m.parent&&m.parent.remove(m));if(S.gear&&S.gear.restore)S.gear.restore();S.gear=null;if(S.me)S.me.sling=false;}
+/* 插隊推擠：主角和小凱在攀爬網上你推我擠，小凱摔下來 */
+async function slideCut(S){const k=S.kai,me=S.me;S.fpBody=false;me.root.visible=false;
+  k.root.position.set(2.75,0.35,-0.75);faceTo(k,1.6,-0.8);k.pose='climb';k.groundOn=false;
+  await moveFP(new V3(3.1,1.42,-1.25),0.6,'walk',new V3(k.root.position.x,1.2,k.root.position.z));
+  rig.shake=0.2;SFX.drive&&SFX.drive();await tween(0.6,q=>{k.root.position.x=2.75+0.12*Math.sin(q*PI*4);});
+  impact();k.pose='fallBack';k.setMood('surprised');const p0=k.root.position.clone();
+  await tween(0.5,q=>{const e=easeI(q);k.root.position.set(p0.x+0.6*q,p0.y*(1-e),p0.z+0.2*q);rig.look.lerp(_tp.set(k.root.position.x,0.6,k.root.position.z),0.3);});
+  SFX.thud();k.groundOn=undefined;k.pose='hurtLeg';k.setMood('hurt');k.root.position.set(3.45,0,-0.55);k.snap=true;rig.shake=0.35;
+  S.fpBody=S.me.kind==='vrm';await wait(1.0);}
+/* 保健室＋隔天：固定板、三角巾；隔天遊戲場沒人敢玩溜滑梯 */
+async function slideNurse(S){const rec=REC;REC=null;const me=S.me,t=S.tea,yu=S.yu,k=S.kai,mei=S.mei;
+  await fade(1,700);cmHide();const N=NURSE.sc;curScene=N;
+  [me,t].forEach(c=>{c.root.parent&&c.root.parent.remove(c.root);N.add(c.root);c.root.visible=true;c.snap=true;});
+  /* 主角躺在保健室第一張床上，頭朝牆 */
+  const bed=NURSE.spot.Student_OnBed1||new V3(-0.36,0.42,-2.06);
+  let my=0.55;{const rc=new THREE.Raycaster(new V3(bed.x,1.2,bed.z),new V3(0,-1,0));const h=rc.intersectObjects(NURSE.visM,false).find(q=>q.point.y<0.75);if(h)my=h.point.y;}
+  me.root.rotation.order='XYZ';me.root.rotation.set(-PI/2,0,0);me.root.position.set(bed.x,my+0.0,bed.z+0.85);me.pose='bed';me.setMood('hurt');me.snap=true;
+  S.gear=await wearSling(me);
+  const nb=NURSE.spot.Nurse_Bedside||new V3(0.62,0,-1.35);t.root.rotation.set(0,0,0);t.root.position.copy(nb);faceTo(t,bed.x,bed.z);t.pose='idle';t.setMood('sad');
+  rig.fp=false;camCut(new V3(1.45,1.75,0.35),new V3(-0.3,0.65,-1.7));musicPlay('tragedy');await fade(0,600);
+  await sayAll([['teacher','手先不要動，老師用固定板把它固定好。已經通知你的家人，等一下要去醫院照 X 光。'],
+    ()=>cmShow('cm-ward',[{slot:'A',shot:()=>{const h=bonePos(me,'rightLowerArm',_c1);aim(_c3.set(h.x+0.5,h.y+0.45,h.z+0.2),h,32);},fx:'dark',tag:'固定板和三角巾'}]),
+    ['nar','你的右手骨折了，手臂用固定板和三角巾包著，痛得說不出話。'],()=>cmHide()],S);
+  /* 隔天 */
+  await fade(1,600);const NT=$('#night');NT.querySelector('b').textContent='隔天';NT.classList.add('on','cap');await wait(1.6);
+  curScene=PLAY.sc;[me,t].forEach(c=>{N.remove(c.root);PLAY.sc.add(c.root);c.snap=true;});t.root.visible=false;k.root.visible=false;mei.root.visible=false;
+  me.root.rotation.set(0,0,0);me.root.position.set(0.2,0,3.7);faceTo(me,SL.x,SL.bot);me.pose='idle';me.setMood('sad');
+  yu.root.rotation.order='XYZ';yu.root.rotation.set(0,0,0);yu.root.position.set(-0.55,0,3.95);faceTo(yu,0.2,3.7);yu.pose='headDown';yu.setMood('sad');yu.root.visible=true;
+  camCut(new V3(4.5,2.6,6.0),new V3(-1.2,0.8,0.8));NT.classList.remove('cap');await wait(0.5);NT.classList.remove('on');await fade(0,700);
+  await sayAll([['nar','隔天下課，遊戲場很安靜，溜滑梯旁邊一個人都沒有。'],
+    async()=>{await camTo(new V3(0.95,1.45,5.3),new V3(-0.2,1.05,3.8),1.0);},
+    ['xiaoyu','對不起，我真的不知道你在下面……現在大家都不敢玩溜滑梯了。'],S=>{me.pose='headDown';},['me','要包好幾個星期，不能寫字，也不能上體育課。']],S);
+  await fade(1,600);slideUnwear(S);
+  /* 回到摔下來那一刻的樣子，接著時光倒轉 */
+  me.root.rotation.order='XYZ';me.root.rotation.set(0,PI/2+0.4,0);me.root.position.set(-2.45,0,SL.top+1.35);me.pose='hurtArm';me.setMood('hurt');me.snap=true;me.root.visible=false;
+  yu.root.position.set(-0.4,0,SL.bot+0.5);yu.pose='idle';yu.setMood('surprised');k.root.visible=true;mei.root.visible=true;
+  rig.fp=true;camCut(new V3(-2.3,0.5,SL.top+1.35),new V3(-0.8,0.6,SL.top+2.6),true);REC=rec;S.noRec=true;await fade(0,600);}
 
 /* 三天後：黑幕、救護車子畫面、病房 */
 async function threeDaysLater(S){const rec=REC;REC=null;const m=S.mei,t=S.tea,me=S.me,F=PF.fl;
@@ -2813,14 +3076,14 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
       ['b','g'].forEach(g=>{const t=thumbFor('me_'+g);if(t){const e=$('#ph_'+g);e.style.backgroundImage=`url(${t})`;e.textContent='';}});}
     /* warm up: compile every character's shaders now so nothing hitches mid-story */
     try{const tmp=[];ids.forEach(id=>{const c=VCH[id];if(c&&!c.root.parent){campus.add(c.root);c.root.position.set(0,0,20);tmp.push(c);}});renderer.compile(campus,camera);tmp.forEach(c=>campus.remove(c.root));}catch(e){}
-    ['xiaokai','xiaomei','teacher'].forEach(k=>thumbFor(k));
+    ['xiaokai','xiaoyu','xiaomei','teacher'].forEach(k=>thumbFor(k));
     await Promise.race([vp,new Promise(r=>setTimeout(r,8000))]);
   }catch(e){console.warn('載入失敗，改用內建角色',e);GAME.vrmOK=!!(VCH.me_b&&VCH.me_g);}
   bar.style.width='100%';lab.textContent='準備完成！';await new Promise(r=>setTimeout(r,250));
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
 GAME.dbg=()=>({THREE,navBuild,navPath,navHit,walkPath,COL,CHAR,stairGait,stairWalk,armIK,ballAnchor,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
-window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={groundAudit,getS:()=>S,TS:()=>TS,CMf:()=>CM.frozen,raceTeacherCorner,raceCorner,tw,campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
+window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={sitOnSlide,crawlOnSlide,wearSling,PLAY,NURSE,SL,loadEnv,slideProfile,setCur:sc=>{curScene=sc;},obstAt,planPath,groundAudit,getS:()=>S,TS:()=>TS,CMf:()=>CM.frozen,raceTeacherCorner,raceCorner,tw,campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
 
 </script>

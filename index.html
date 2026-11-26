@@ -1186,7 +1186,7 @@ const JR_K=[-1.0,1.6,-0.6,0.9,0.45,0.12];
 const JP_K=[[0,-1.0,1.6,-0.6,0.9,0.45,0.12],[0.1,-0.15,0.15,0.4,-2.4,0.05,0],[0.3,-0.9,1.3,0.2,-1.9,0.2,0],[0.6,-0.6,0.8,0.1,-1.6,0.15,0]];
 const LD_K=[[0,-0.9,1.3,0.2,-1.9,0.2,0],[0.15,-1.55,2.25,-0.6,-1.3,0.5,0.22],[0.6,-1.45,2.1,-0.55,-0.9,0.4,0.2]];
 /* ground contact: sample the skinned mesh vertices (bones applied) and move the root so the lowest point rests exactly on the floor below it */
-const AIR_P=new Set(['jump','brace','trip','cheer','climb','bed','stairs','fallBack','slideSit','crawl','kneelUp']);var HP={l:[0,0,0.9],r:[0,0,-0.9]};window.__hp=(l,r)=>{HP.l=l;HP.r=r;};const _gv=new V3();
+const AIR_P=new Set(['kp','jump','brace','trip','cheer','climb','bed','stairs','fallBack','slideSit','crawl','kneelUp']);var HP={l:[0,0,0.9],r:[0,0,-0.9]};window.__hp=(l,r)=>{HP.l=l;HP.r=r;};const _gv=new V3();
 /* sitting on the floor rests on two contacts (buttocks and heels); lying rests on the back. Hair is soft, so it never holds a body up,
    and while lying its spring gravity is switched off so the ponytail keeps its shape along the floor instead of hanging through it */
 const SIT_P=new Set(['hurtSit','hurtArm','hurtLeg']),LIE_P=new Set(['lie','bed']);const _gw=new V3(),_gl=new V3();
@@ -1225,6 +1225,19 @@ function groundAudit(){const out=bodyAudit();const sc=curScene;const vis=[];sc.t
     if(!lo)return;_ar.ray.origin.set(lo.x,lo.y+0.5,lo.z);_ar.far=1.5;const h=_ar.intersectObjects(vis,false).find(q=>!c.root.getObjectById(q.object.id));
     const fy=h?h.point.y:0,gap=lo.y-fy,sink=c.pose==='bed'?-0.09:-0.02;out.push({who:(Object.entries(CHAR).find(([k,v])=>v===c)||['?'])[0],pose:c.pose,x:+lo.x.toFixed(2),z:+lo.z.toFixed(2),gap:+gap.toFixed(3),bad:gap<sink||gap>0.03});});
   return out;}
+/* 兩節肢體反向運動（IK）：手（肩－肘－腕）或腳（髖－膝－踝）的末端放到目標點，保留原本手肘、膝蓋彎曲的方向 */
+const _lk={q:new THREE.Quaternion(),pw:new THREE.Quaternion()};
+function rotBoneWorld(b,from,to,w){const q=_lk.q.setFromUnitVectors(from.clone().normalize(),to.clone().normalize());if(w<1)q.slerp(new THREE.Quaternion(),1-w);b.parent.getWorldQuaternion(_lk.pw);const inv=_lk.pw.clone().invert();b.quaternion.premultiply(inv.multiply(q).multiply(_lk.pw));b.updateMatrixWorld(true);}
+function ik2(c,ub,lb,eb,T,w=1,pole=null,mb=0){const u=c.B[ub],l=c.B[lb],e=c.B[eb];if(!u||!l||!e)return;c.root.updateMatrixWorld(true);
+  const S=u.getWorldPosition(new V3()),E=l.getWorldPosition(new V3()),H=e.getWorldPosition(new V3());const a=E.distanceTo(S),b=H.distanceTo(E);
+  const dv=T.clone().sub(S);let d=dv.length();if(d<1e-4)return;const dir=dv.divideScalar(d);d=Math.min(Math.max(d,Math.abs(a-b)+0.002),Math.min(a+b-0.002,Math.sqrt(a*a+b*b+2*a*b*Math.cos(mb))));
+  let side=pole?pole.clone():E.clone().sub(S);side.addScaledVector(dir,-side.dot(dir));if(side.lengthSq()<1e-8){side=H.clone().sub(S).cross(dir);}side.normalize();
+  const ca=Math.min(1,Math.max(-1,(a*a+d*d-b*b)/(2*a*d))),sa=Math.sqrt(1-ca*ca);const E2=S.clone().addScaledVector(dir,a*ca).addScaledVector(side,a*sa);
+  rotBoneWorld(u,E.clone().sub(S),E2.clone().sub(S),w);const E3=l.getWorldPosition(new V3()),H3=e.getWorldPosition(new V3());const Tc=S.clone().addScaledVector(dir,d);
+  rotBoneWorld(l,H3.clone().sub(E3),Tc.clone().sub(E3),w);}
+function limbIK(c){c.root.updateMatrixWorld(true);const P=n=>c.B[n].getWorldPosition(new V3());const fk={lh:P('leftHand'),rh:P('rightHand'),lf:P('leftFoot'),rf:P('rightFoot')};
+  const T=c.ikDrive(c,fk);if(!T)return;const L=[['lh','leftUpperArm','leftLowerArm','leftHand'],['rh','rightUpperArm','rightLowerArm','rightHand'],['lf','leftUpperLeg','leftLowerLeg','leftFoot'],['rf','rightUpperLeg','rightLowerLeg','rightFoot']];
+  for(const [k,u,l,e] of L){const g=T[k];if(g&&g.t&&g.w>0.01)ik2(c,u,l,e,g.t,Math.min(1,g.w),g.pole||null,g.mb||0);}}
 function makeVRMChar(vrm,height=1.42,opts={}){
   const c={kind:'vrm',vrm,root:new THREE.Group(),pose:'idle',mood:'',phase:0,talk:false,t:Math.random()*5,marks:[],animSpeed:1,blinkT:2,vis:{v:'aa',t:0,o:0}};
   c.root.rotation.order='YXZ';const body=new THREE.Group();c.root.add(body);c.body=body;body.add(vrm.scene);
@@ -1305,6 +1318,7 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     else if(P==='slideSit'){leg(T,1,-1.5,0.12,0.15,0.05);leg(T,-1,-1.5,0.12,0.15,0.05);arm(T,1,1.2,0.35,0.25);arm(T,-1,1.2,0.35,0.25);T.spine=[0.12,0,0];T.neck=[0.05,0,0];drop=0.5;}
     else if(P==='crawl'){const a=Math.sin(t*(c.crawlF||6)),u=Math.max(0,a),v=Math.max(0,-a);
       leg(T,1,-0.5-0.2*u,1.9,0.6,0.1);leg(T,-1,-0.5-0.2*v,1.9,0.6,0.1);arm(T,1,1.2,-1.3-0.25*v,0.1);arm(T,-1,1.2,-1.3-0.25*u,0.1);T.spine=[1.4,0,0];T.chest=[0.2,0,0];T.neck=[-0.7,0,0];T.head=[-0.5,0,0];drop=0.38;}
+    else if(P==='kp'&&c.kpT){Object.assign(T,c.kpT);}
     else if(P==='kneelUp'){leg(T,1,-1.2,1.6,0.4,0.08);leg(T,-1,-0.4,0.9,0.4,0.08);arm(T,1,1.3,-1.6,0.3);arm(T,-1,1.1,-0.9,0.4);T.spine=[0.5,0,0];T.neck=[-0.35,0,0];T.head=[-0.3,0,0];drop=0.3;}
     else if(P==='bendPick'){const b=c.bend??1;leg(T,1,-1.95*b,2.45*b,-0.5*b,0.22*b);leg(T,-1,-1.9*b,2.4*b,-0.5*b,0.22*b);T.spine=[0.95*b,0,0];T.chest=[0.4*b,0,0];T.neck=[-0.2*b,0,0];T.head=[-0.25*b,0,0];}
     else if(P==='stairs'&&c.sg){const g=c.sg,R=c.legR;for(const sd of [1,-1]){const F=g.feet[sd];const dz=F.f-g.pf-R.az,dy=F.h+R.ank+R.toe*0.6*Math.sin(Math.max(0,F.p))-g.ph;let L=Math.hypot(dz,dy);L=Math.min(Math.max(L,Math.abs(R.L1-R.L2)+0.01),(R.L1+R.L2)*0.999);const ph=Math.atan2(dz,-dy),be=Math.acos(Math.min(1,Math.max(-1,(R.L1*R.L1+L*L-R.L2*R.L2)/(2*R.L1*L))));const a1=ph+be,kz=R.L1*Math.sin(a1),ky=-R.L1*Math.cos(a1),a2=Math.atan2(dz-kz,-(dy-ky));leg(T,sd,-a1,a1-a2,a2+F.p,0.03);}const am=(g.up?(g.fast?0.55:0.38):0.22)*g.tp,cs=Math.cos(PI*g.u)*am;arm(T,1,g.up?1.25:1.12,cs,g.fast?1.25:0.4);arm(T,-1,g.up?1.25:1.12,-cs,g.fast?1.25:0.4);T.spine=[g.up?(g.fast?0.34:0.17):0.03,0,0];T.chest=[g.up?0.04:0,-cs*0.12,0];T.neck=[g.up?0:0.12,0,0];T.head=[g.up?0.02:0.26,0,0];}
@@ -1316,6 +1330,8 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     const k=(c.snap||P==='stairs')?1:1-Math.exp(-dt*14);
     for(const n in c.B){if(n==='hips')continue;const e=T[n]||[0,0,0];E.set(e[0],e[1],e[2],'XYZ');Q.setFromEuler(E);if(e[3])Q.multiply(Q2.setFromAxisAngle(XA,e[3]));if(c.snap)c.B[n].quaternion.copy(Q);else c.B[n].quaternion.slerp(Q,k);}
     if(c.grip&&c.grip.w>0.001&&c.gripBall)armIK(c);
+    if(c.anchor&&c.B[c.anchor.b]){c.root.updateMatrixWorld(true);c.B[c.anchor.b].getWorldPosition(_gv);_gv.sub(c.anchor.at).negate().applyQuaternion(_gq.copy(c.root.quaternion).invert());body.position.add(_gv);}
+    if(c.ikDrive)limbIK(c);
     {const ft=(P==='rps'||(P==='rpsOut'&&c.handShape==='rock'))?1:0;const nk=c.snap?ft:lerp(c.fistK,ft,1-Math.exp(-dt*16));
       if(Math.abs(nk-c.fistK)>1e-4||c.snap){c.fistK=nk;for(const f of c.F){E.set(0,f[2]*nk,f[3]*nk,'XYZ');f[0].quaternion.setFromEuler(E);}}}
     c.tears.forEach((tr,i)=>{tr.visible=c.mood==='hurt';if(tr.visible){const ph=(t*0.9+i*0.5)%1;tr.position.y=eye-0.012-ph*0.06;tr.scale.setScalar(1-ph*0.4);}});
@@ -1329,6 +1345,7 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     if(c.snap&&vrm.springBoneManager){vrm.scene.updateMatrixWorld(true);vrm.springBoneManager.reset();}
     c.root.getWorldPosition(_np);if((_np.distanceTo(_lp)>0.6||c.rs)&&vrm.springBoneManager){c.rs=0;vrm.scene.updateMatrixWorld(true);vrm.springBoneManager.reset();}_lp.copy(_np);
     c.snap=false;{const n=Math.max(1,Math.ceil(dt/0.02));for(let i=0;i<n;i++)vrm.update(dt/n);}
+    if(c.anchor){c.lift=0;c.bobP=0;return;}
     c.root.updateMatrixWorld(true);let mn=1e9;for(const g of c.GB){g[0].getWorldPosition(_gv);if(_gv.y-g[1]<mn)mn=_gv.y-g[1];}
     {const dl=c.root.matrixWorld.elements[13]-(mn-c.bobP);if(Math.abs(dl)>0.12)c.rs=1;c.lift=P==='stairs'?0:clamp(c.lift+dl,-1.7,0.8);}
     _gv.set(0,1,0).applyQuaternion(_gq.copy(c.root.quaternion).invert());body.position.copy(_gv).multiplyScalar(c.lift+bob);c.bobP=bob;};
@@ -2501,7 +2518,7 @@ function separateBodies(){if(mode!=='case'||!S||!curScene)return;const cs=[];LIV
     if(wa&&wb){const ma=tryMove(a,wa/(wa+wb),-1),mb=tryMove(b,wb/(wa+wb),1);if(!ma&&mb)tryMove(b,wa/(wa+wb),1);else if(ma&&!mb)tryMove(a,wb/(wa+wb),-1);}
     else if(wa)tryMove(a,1,-1);else tryMove(b,1,1);}}
 /* development checker: logs bodies that overlap static geometry or each other */
-const COL={on:false,log:[],skip:new Set(['slideSit','crawl','kneelUp','fallBack','sumo','pushHold','shove','pull','lie','trip','hurtSit','hurtLeg','hurtArm','hurtMouth','bed','climb','jump','brace'])};
+const COL={on:false,log:[],skip:new Set(['kp','slideSit','crawl','kneelUp','fallBack','sumo','pushHold','shove','pull','lie','trip','hurtSit','hurtLeg','hurtArm','hurtMouth','bed','climb','jump','brace'])};
 function colCheck(){if(!COL.on||!S||!curScene)return;const nav=navBuild(curScene),fl=S.floor||(()=>0),cs=[];
   LIVE.forEach(c=>{if(c.root.parent===curScene&&c.root.visible&&c.kind==='vrm')cs.push(c);});
   const nm=c=>Object.keys(CHAR).find(k=>CHAR[k]===c)||'?';
@@ -2887,21 +2904,85 @@ function slideProfile(){const E=PLAY,rc=new THREE.Raycaster();rc.ray.direction.s
 function slideY(z){const P=SL.prof;if(!P||!P.length)return 0;if(z<=P[0][0])return P[0][1];for(let i=1;i<P.length;i++)if(z<=P[i][0]){const [z0,y0]=P[i-1],[z1,y1]=P[i];return y0+(y1-y0)*(z-z0)/(z1-z0);}return P[P.length-1][1];}
 function slidePitch(z){return Math.atan2(slideY(z-0.15)-slideY(z+0.15),0.3);}   /* 往上（-z）的仰角 */
 /* 坐在滑道上（腳朝下、往 +z 滑）；c.root 放在滑道表面 */
-/* 攀爬網：網子從地面（x=netX0）斜斜往上接到平台（x=netX1）。身體順著網子往前傾、面向平台往上爬 */
-const NET_LEAN=0.62;
+/* ===== 攀爬網：網子從地面（x=netX0）斜斜往上（約 43°）接到平台（x=netX1、高 SL.deck） =====
+   動作用「關節角度關鍵影格」描述（單位：弧度，正值＝屈曲）：
+   lean 全身前傾、spine/chest 軀幹前彎、neck/head 負值＝抬頭；
+   腿 hip 髖屈曲、knee 膝屈曲、ank 踝蹠屈（負值＝背屈）、ab 髖外展；手 sh 肩屈曲（往前往上抬）、ab 肩外展、elb 肘屈曲。
+   每個影格指定「接觸點」（雙腳、雙膝或單膝）要落在網子或平台上的位置，程式自動算出骨盆該在哪裡，影格之間平順內插。 */
+/* 關節角度依骨科醫師的檢視意見調整：身體順著網子前傾、骨盆貼近網子；左手往上抓時右腳往上踩（對側交替），
+   一次只動一隻手或一隻腳，其餘三點都抓牢／踩穩；平台在腰到胸口的高度時雙手就先撐上平台。ik：手、左腳、右腳貼住網子或平台的程度 */
+const NETK={
+  climbA:{lean:0.72,spine:0.10,chest:0.06,neck:-0.40,head:-0.30,L:{hip:0.75,knee:1.00,ank:-0.15,ab:0.10},R:{hip:1.60,knee:2.10,ank:-0.30,ab:0.12},LA:{sh:2.55,ab:0.12,elb:0.25},RA:{sh:1.37,ab:0.12,elb:1.80},c:'feet',ik:{h:1,lf:1,rf:1}},
+  /* 腳還在網子上（離頂端 2~3 格），雙手先平放到平台上 */
+  top0:{lean:0.72,spine:0.15,chest:0.05,neck:-0.50,head:-0.30,L:{hip:0.80,knee:1.05,ank:-0.15,ab:0.10},R:{hip:1.25,knee:1.60,ank:-0.25,ab:0.10},LA:{sh:1.10,ab:0.10,elb:0.15},RA:{sh:1.10,ab:0.10,elb:0.15},c:'feet',ik:{h:1,lf:1,rf:1}},
+  /* 雙手撐住、右腳往上踩到最上面一格 */
+  top0b:{lean:0.85,spine:0.15,chest:0.05,neck:-0.50,head:-0.30,L:{hip:0.90,knee:1.20,ank:-0.10,ab:0.10},R:{hip:1.45,knee:1.90,ank:-0.25,ab:0.10},LA:{sh:1.20,ab:0.10,elb:0.30},RA:{sh:1.20,ab:0.10,elb:0.30},c:'feet',ik:{h:1,lf:1,rf:1}},
+  /* 左膝跪上平台，右腳踩在最上面一格 */
+  top1:{lean:0.90,spine:0.15,chest:0.05,neck:-0.50,head:-0.30,L:{hip:1.95,knee:2.35,ank:0.50,ab:0.08},R:{hip:1.60,knee:2.00,ank:-0.15,ab:0.10},LA:{sh:1.31,ab:0.10,elb:0.40},RA:{sh:1.31,ab:0.10,elb:0.40},c:'lknee',ik:{h:1,lf:0,rf:1}},
+  /* 四肢著地：雙手在肩膀正下方，膝蓋、小腿和腳都在平台上 */
+  top2:{lean:1.25,spine:0.07,chest:0.0,neck:-0.55,head:-0.30,L:{hip:1.25,knee:1.57,ank:0.90,ab:0.08},R:{hip:1.25,knee:1.57,ank:0.90,ab:0.08},LA:{sh:1.35,ab:0.08,elb:0.05},RA:{sh:1.35,ab:0.08,elb:0.05},c:'knees',ik:{h:1,lf:0,rf:0}},
+  /* 單膝跪：右腳往前踩平、右手撐在右大腿上 */
+  /* 從四肢著地先把手抬起來、雙膝跪直（還在跪姿），再把右腳往前跨 */
+  top3:{lean:0.2,spine:0.1,chest:0,neck:-0.1,head:0,L:{hip:0.4,knee:1.57,ank:0.90,ab:0.05},R:{hip:0.4,knee:1.57,ank:0.90,ab:0.05},LA:{sh:0.3,ab:0.08,elb:0.3},RA:{sh:0.3,ab:0.08,elb:0.3},c:'knees',ik:{h:0,lf:0,rf:0}},
+  top4:{lean:0.15,spine:0.25,chest:0.05,neck:-0.15,head:0,L:{hip:0.15,knee:1.57,ank:0.90,ab:0.05},R:{hip:1.65,knee:1.60,ank:-0.05,ab:0.08},LA:{sh:0.20,ab:0.08,elb:0.30},RA:{sh:0.60,ab:0.08,elb:0.90},c:'lknee',ik:{h:0,lf:0,rf:1}},
+  top5:{lean:0,spine:0,chest:0,neck:0,head:0,L:{hip:0,knee:0.03,ank:0,ab:0.04},R:{hip:0,knee:0.03,ank:0,ab:0.04},LA:{sh:0.05,ab:0.08,elb:0.15},RA:{sh:0.05,ab:0.08,elb:0.15},c:'feet',ik:{h:0,lf:1,rf:1}}};
+function kpMirror(J){return Object.assign({},J,{L:J.R,R:J.L,LA:J.RA,RA:J.LA});}
+function kpLerp(A,B,u){if(typeof A==='number')return A+(B-A)*u;if(typeof A==='string')return u<0.5?A:B;const o={};for(const k in A)o[k]=kpLerp(A[k],B[k],u);return o;}
+function kpT(J){const T={};for(const [s,k] of [[1,'L'],[-1,'R']]){const g=J[k],n=s>0?'left':'right';T[n+'UpperLeg']=[-g.hip,0,(g.ab||0)*s];T[n+'LowerLeg']=[g.knee,0,0];T[n+'Foot']=[g.ank||0,0,0];}
+  for(const [s,k] of [[1,'LA'],[-1,'RA']]){const g=J[k],n=s>0?'left':'right';T[n+'UpperArm']=[-g.sh,0,-s*(1.5-(g.ab||0))];T[n+'LowerArm']=[0,-s*g.elb,0];}
+  T.spine=[J.spine||0,0,0];T.chest=[J.chest||0,0,0];T.neck=[J.neck||0,0,0];T.head=[J.head||0,0,0];return T;}
+/* 接觸點（世界座標）：雙腳＝兩個腳踝的中點、雙膝＝兩個膝關節的中點、lknee＝左膝 */
+function kpContact(c,kind){const P=n=>c.B[n].getWorldPosition(new V3());if(kind==='lknee')return P('leftLowerLeg');if(kind==='knees')return P('leftLowerLeg').add(P('rightLowerLeg')).multiplyScalar(0.5);return P('leftFoot').add(P('rightFoot')).multiplyScalar(0.5);}
+/* 量出某個影格「骨盆相對接觸點」的位置 */
+function kpCalib(c,J,yaw){const sv={p:c.root.position.clone(),o:c.root.rotation.order,r:c.root.rotation.clone(),pose:c.pose,kpT:c.kpT,an:c.anchor};
+  c.anchor=null;c.root.rotation.order='YXZ';c.root.rotation.set(J.lean,yaw,0);c.pose='kp';c.kpT=kpT(J);c.snap=true;c.update(0.0001);c.snap=true;c.update(0.0001);c.root.updateMatrixWorld(true);
+  const d=c.B.hips.getWorldPosition(new V3()).sub(kpContact(c,J.c));Object.assign(c,{pose:sv.pose,kpT:sv.kpT,anchor:sv.an});c.root.position.copy(sv.p);c.root.rotation.order=sv.o;c.root.rotation.copy(sv.r);c.snap=true;return d;}
+/* 接觸點要放的位置：網面（x）或平台上 */
+function netPt(x,dz=0,h=0.075){return new V3(x,netY(x)+h,SL.netZ+dz);}
 function netY(x){return SL.deck*Math.min(1,Math.max(0,(SL.netX0-x)/(SL.netX0-SL.netX1)));}
-function netX(q){return SL.netX0+0.12+(SL.netX1-0.02-(SL.netX0+0.12))*q;}
-function netOn(c,q,dz=0){const x=netX(q);c.root.rotation.order='YXZ';c.root.position.set(x,netY(x)+0.03,SL.netZ+dz);c.root.rotation.set(NET_LEAN*(1-0.5*Math.max(0,q-0.85)/0.15),-PI/2,0);c.pose='climb';}
-function headOn(root,lean,yaw,h=1.22){const f=new V3(Math.sin(yaw),0,Math.cos(yaw));return root.clone().addScaledVector(f,Math.sin(lean)*h).setY(root.y+Math.cos(lean)*h);}
-/* 主角（第一人稱）爬攀爬網：面向平台、順著網子往上，手腳交替；到頂端跪上平台再站起來 */
-async function fpNetClimb(S,dz=0,dur=2.6){const me=S.me,D=SL.deck;S.fpYaw=-PI/2;S.fpRoot=new V3();me.pose='climb';
-  const at=q=>{netOn(me,q,dz);S.fpRoot.copy(me.root.position);S.fpPitch=me.root.rotation.x;rig.pos.copy(headOn(S.fpRoot,S.fpPitch,-PI/2));rig.look.set(rig.pos.x-1.6,rig.pos.y+0.15-0.9*(1-q),SL.netZ+dz);};
-  at(0);await tween(dur,q=>{me.climbK=q*6;at(q);});me.climbK=null;
-  /* 跪上平台 */
-  me.pose='kneelUp';const r0=S.fpRoot.clone(),r1=new V3(SL.netX1-0.25,D,SL.netZ+dz);
-  await tween(0.5,q=>{S.fpRoot.lerpVectors(r0,r1,easeIO(q));S.fpPitch=NET_LEAN*0.5*(1-q)+0.35*q;rig.pos.copy(headOn(S.fpRoot,S.fpPitch,-PI/2,0.95));rig.look.set(rig.pos.x-1.6,D+0.9,SL.netZ+dz);});
-  await tween(0.45,q=>{S.fpPitch=0.35*(1-q);rig.pos.copy(headOn(S.fpRoot,S.fpPitch,-PI/2,0.95+0.3*q));});
-  S.fpRoot=null;S.fpPitch=0;S.fpYaw=null;me.pose='idle';me.root.rotation.order='XYZ';rig.pos.set(r1.x,D+1.25,r1.z);}
+function netX(q){return SL.netX0-0.05+(2.10-(SL.netX0-0.05))*q;}
+/* 手腳要貼的表面：網面（斜面）或平台（水平）。回傳往外 off 公尺的投影點 */
+const NET_N=new V3(SL.deck/(SL.netX0-SL.netX1),1,0).normalize();
+function surfProj(p,off){if(p.x<=SL.netX1)return new V3(p.x,SL.deck+off,p.z);const o=new V3(SL.netX0,0,p.z),dd=p.clone().sub(o).dot(NET_N);const q=p.clone().addScaledVector(NET_N,-dd+off);if(q.x<SL.netX1+0.02){q.x=Math.max(q.x,SL.netX1+0.02);q.y=netY(q.x)+off;}return q;}
+/* 建一條「攀爬網＋上平台」的動作時間軸：回傳 f(u) 會擺好角色（u：0~1 爬網、1~2 上平台） */
+function netRig(c,dz=0){const yaw=-PI/2,A=NETK.climbA,B=kpMirror(A),dA=kpCalib(c,A,yaw),dB=kpCalib(c,B,yaw);
+  const keys=['top0','top0b','top1','top2','top3','top4','top5'],tops=keys.map(k=>NETK[k]),tu=[0,0.15,0.3,0.48,0.64,0.82,1];
+  const X1=SL.netX1,D=SL.deck,z=SL.netZ+dz;
+  const tc=[netPt(2.10,dz),netPt(1.98,dz),new V3(X1-0.24,D+0.06,z),new V3(X1-0.58,D+0.06,z),new V3(X1-0.58,D+0.06,z),new V3(X1-0.60,D+0.06,z),new V3(X1-0.72,D+0.075,z)];
+  const td=tops.map(J=>kpCalib(c,J,yaw));const base=new V3(SL.netX0+0.3,0,z);
+  /* 手腳鎖定：正在移動的那一肢跟著動作走（投影到表面），其他肢體鎖在原地 */
+  const lock={},mov={lh:true,rh:true,lf:true,rf:true};let IKW={h:1,lf:1,rf:1};
+  let onNet=true;const up=new V3(-(SL.netX0-SL.netX1),SL.deck,0).normalize(),pole=up.clone().add(NET_N).setZ(0).normalize(),poleDeck=new V3(-1,0.3,0).normalize();
+  c.ikDrive=(c,fk)=>{const out={};const mz=c.B.hips.getWorldPosition(new V3()).z;
+    for(const k of ['lh','rh','lf','rf']){const hand=k[1]==='h',off=hand?0.035:0.075,sd=k[0]==='l'?1:-1;const p=fk[k].clone();
+      /* 手抓在肩膀寬度（中線左右 0.14 公尺）、腳不離中線超過 0.12 公尺；爬網時手不超過最上面一格 */
+      if(hand)p.z=mz+sd*0.14;else p.z=Math.min(mz+0.12,Math.max(mz-0.12,p.z));
+      if(hand&&onNet)p.x=Math.max(p.x,SL.netX1+0.06);
+      const want=surfProj(p,off);if(!hand&&mov[k])want.addScaledVector(NET_N,0.06*(onNet?1:0));
+      if(mov[k]||!lock[k])lock[k]=want;out[k]={t:lock[k],w:hand?IKW.h:IKW[k],pole:hand?null:(fk[k].x<=SL.netX1?poleDeck:pole),mb:(!hand&&onNet)?0.6:0};}return out;};
+  return u=>{let J,at;
+    if(u<1){const ph=u*6,k=Math.floor(ph),sp=ph-k,odd=k%2===1;const wa=easeIO(Math.min(1,sp/0.5)),wl=easeIO(Math.max(0,(sp-0.5)/0.5));
+      const ia=odd?1-wa:wa,il=odd?1-wl:wl;/* 0=B 1=A：先動手、再動腳 */
+      const JA=kpLerp(B,A,ia),JL=kpLerp(B,A,il);J=Object.assign({},JL,{LA:JA.LA,RA:JA.RA});
+      mov.lh=!odd&&sp<0.5;mov.rh=odd&&sp<0.5;mov.rf=!odd&&sp>=0.5;mov.lf=odd&&sp>=0.5;
+      const x=netX(u);const d=kpLerp({x:dB.x,y:dB.y,z:dB.z},{x:dA.x,y:dA.y,z:dA.z},il);at=netPt(x,dz).add(new V3(d.x,d.y,d.z));
+      onNet=true;if(u>0.88){const e=(u-0.88)/0.12;J=kpLerp(J,tops[0],e);at.lerp(tc[0].clone().add(td[0]),e);mov.lh=mov.rh=true;onNet=false;}
+      IKW=J.ik||A.ik;}
+    else{const v=Math.min(1,u-1);let i=0;while(i<tu.length-2&&v>tu[i+1])i++;const e=easeIO((v-tu[i])/(tu[i+1]-tu[i]));
+      J=kpLerp(tops[i],tops[i+1],e);at=tc[i].clone().add(td[i]).lerp(tc[i+1].clone().add(td[i+1]),e);
+      onNet=false;const moving=e>0.02&&e<0.98;mov.lh=mov.rh=moving;mov.lf=moving&&(i===0||i>=3);mov.rf=moving&&i!==1;IKW=J.ik;}
+    c.pose='kp';c.kpT=kpT(J);c.root.rotation.order='YXZ';c.root.rotation.set(J.lean,yaw,0);c.root.position.copy(base);c.anchor={b:'hips',at};return J;};}
+/* 角色停在網子上某個位置（q：0 底部～1 頂端） */
+function netOn(c,q,dz=0){c.root.visible=true;const f=netRig(c,dz);f(q);c.snap=true;return f;}
+function netOff(c){c.anchor=null;c.kpT=null;c.ikDrive=null;c.root.rotation.order='XYZ';c.root.rotation.set(0,-PI/2,0);c.pose='idle';}
+/* 主角（第一人稱）爬攀爬網：鏡頭跟著頭部骨骼 */
+async function fpNetClimb(S,dz=0,dur=2.6){const me=S.me,D=SL.deck;const f=netRig(me,dz);S.fpYaw=-PI/2;S.fpRoot=new V3(SL.netX0+0.3,0,SL.netZ+dz);
+  const hp=new V3();const cam=(u,J)=>{S.fpPitch=J.lean;me.B.head.getWorldPosition(hp);rig.pos.copy(hp).add(new V3(-0.06,0.07,0));
+    const up=u<1?0.15-0.9*(1-u):(u<1.5?0.2:0.05);rig.look.set(rig.pos.x-1.6,rig.pos.y+up,SL.netZ+dz);};
+  let J=f(0);me.snap=true;await nextFrame();cam(0,J);
+  await tween(dur,q=>{J=f(q);cam(q,J);});
+  await tween(2.4,q=>{J=f(1+q);cam(1+q,J);});
+  me.anchor=null;me.ikDrive=null;S.fpRoot=null;S.fpPitch=0;S.fpYaw=null;me.pose='idle';me.kpT=null;me.root.rotation.order='XYZ';me.snap=true;rig.pos.set(SL.netX1-0.62,D+1.25,SL.netZ+dz);}
 /* 慢動作重播：第三人稱從旁邊看小宇滑下來撞上正在往上爬的主角 */
 async function slideReplay(S,z1){const me=S.me,yu=S.yu,rec=REC;REC=null;const za=SL.top+0.05,zb=z1-0.72;
   await fade(1,250);const sub=$('#sub'),subH=sub.classList.contains('hide');sub.classList.add('hide');const bd=document.createElement('div');bd.id='rp';bd.innerHTML='<b>●</b>慢動作重播';document.body.appendChild(bd);document.body.classList.add('replay');
@@ -3005,6 +3086,8 @@ CASES.slide={id:'slide',kind:'news',cmDanger:{pose:'crawl',t:'危險！',icon:'�
       lines:[['xiaokai','哇啊——'],['nar','小凱一腳踩空，從攀爬網上摔了下來。'],async S=>{const t=S.tea;t.root.visible=true;t.root.position.set(6.5,0,3.8);await walkTo(t,new V3(3.7,0,-0.3),1.6,'run');faceTo(t,3.3,-0.75);t.pose='lean';},
         ['teacher','在遊具上推擠，也會摔下來。小凱，腳先不要動，老師看一下。']]}]},
   async safe(S){const me=S.me,k=S.kai,yu=S.yu,D=SL.deck;
+    /* 排隊、爬網、滑下來的過程要看得清楚：先收掉子畫面 */
+    cmHide();
     await sayAll([['xiaokai','好啦，那就排隊。']],S);
     /* 小宇先滑下來、離開滑道口 */
     await camTo(new V3(3.6,1.4,-1.1),new V3(SL.x,0.8,1.6),0.6);
@@ -3045,7 +3128,7 @@ function slideRegretShot(S){const me=S.me,yu=S.yu,k=S.kai,z=SL.top+1.35;S.fpRoot
 async function slideCut(S){const k=S.kai,me=S.me;S.fpBody=false;me.root.visible=false;
   netOn(k,0.22,0.35);k.groundOn=false;
   await moveFP(new V3(3.1,1.42,-1.25),0.6,'walk',new V3(k.root.position.x,1.2,k.root.position.z));
-  rig.shake=0.2;SFX.drive&&SFX.drive();const kx=k.root.position.x;await tween(0.6,q=>{k.root.position.x=kx+0.1*Math.sin(q*PI*4);});k.root.rotation.order='XYZ';k.root.rotation.set(0,-PI/2,0);
+  rig.shake=0.2;SFX.drive&&SFX.drive();const a0=k.anchor.at.clone();await tween(0.6,q=>{k.anchor.at.z=a0.z+0.07*Math.sin(q*PI*4);});const hp=k.B.hips.getWorldPosition(new V3());netOff(k);k.root.position.set(hp.x+0.05,Math.max(0,hp.y-0.8),hp.z);k.snap=true;
   impact();k.pose='fallBack';k.setMood('surprised');const p0=k.root.position.clone();
   await tween(0.5,q=>{const e=easeI(q);k.root.position.set(p0.x+0.6*q,p0.y*(1-e),p0.z+0.2*q);rig.look.lerp(_tp.set(k.root.position.x,0.6,k.root.position.z),0.3);});
   SFX.thud();k.groundOn=undefined;k.pose='hurtLeg';k.setMood('hurt');k.root.position.set(3.45,0,-0.55);k.snap=true;rig.shake=0.35;
@@ -3164,7 +3247,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
 GAME.dbg=()=>({THREE,navBuild,navPath,navHit,walkPath,COL,CHAR,stairGait,stairWalk,armIK,ballAnchor,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
-window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={netOn,fpNetClimb,slideReplay,COL,separateBodies,scatterBooks,makeBooks,CR,bonePos,impact:()=>0,slideRegretShot,sitOnSlide,crawlOnSlide,wearSling,PLAY,NURSE,SL,loadEnv,slideProfile,setCur:sc=>{curScene=sc;},obstAt,planPath,groundAudit,getS:()=>S,TS:()=>TS,CMf:()=>CM.frozen,raceTeacherCorner,raceCorner,tw,campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
+window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={netOn,netRig,netOff,NETK,kpT,fpNetClimb,slideReplay,COL,separateBodies,scatterBooks,makeBooks,CR,bonePos,impact:()=>0,slideRegretShot,sitOnSlide,crawlOnSlide,wearSling,PLAY,NURSE,SL,loadEnv,slideProfile,setCur:sc=>{curScene=sc;},obstAt,planPath,groundAudit,getS:()=>S,TS:()=>TS,CMf:()=>CM.frozen,raceTeacherCorner,raceCorner,tw,campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
 
 </script>

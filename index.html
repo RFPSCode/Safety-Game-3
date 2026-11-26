@@ -374,12 +374,22 @@ body.jail #cv{filter:grayscale(1) contrast(1.2) brightness(.72)}
 #night{position:fixed;inset:0;z-index:17;background:transparent;opacity:0;pointer-events:none;transition:opacity .9s;display:grid;place-items:center}
 #night.on{opacity:1}#night b{font-size:clamp(40px,9vw,92px);font-weight:900;color:#f4f1ff;letter-spacing:.3em;opacity:0;transform:scale(.92);transition:opacity 1.1s,transform 2.4s ease-out;text-shadow:0 0 24px rgba(160,150,255,.45)}
 #night.cap b{opacity:1;transform:scale(1)}
+#cctv{position:fixed;z-index:19;top:12%;left:3%;width:min(46vw,520px);padding:8px 8px 6px;background:#1b1d22;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);transform:translateY(-14px) scale(.96);opacity:0;transition:.35s}
+#cctv.on{opacity:1;transform:none}#cctv .scr{position:relative;overflow:hidden;border-radius:4px;aspect-ratio:16/9}
+#cctv img{width:100%;height:100%;object-fit:cover;display:block;filter:grayscale(1) contrast(1.25) brightness(.95)}
+#cctv .scr:after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 1px,transparent 1px 3px)}
+#cctv .ring{position:absolute;width:20%;aspect-ratio:1;border:4px solid #ff2d2d;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 12px #ff2d2d;animation:cctvp 1s ease-in-out infinite;z-index:2}
+@keyframes cctvp{50%{transform:translate(-50%,-50%) scale(1.12)}}@keyframes blink{50%{opacity:0}}
+#cctv .rec{position:absolute;left:10px;top:8px;color:#ff3a3a;font:700 14px/1 monospace;z-index:2;animation:blink 1s steps(2) infinite}
+#cctv .ts{position:absolute;right:10px;bottom:8px;color:#fff;font:600 12px/1 monospace;z-index:2;text-shadow:0 1px 2px #000}
+#cctv .cap{color:#d9dce3;font-weight:800;font-size:15px;text-align:center;padding-top:6px;letter-spacing:.1em}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <div id="vig"></div>
 <div id="night"><b></b></div>
+<div id="cctv" class="hide"><div class="scr"><img alt=""><i class="ring"></i><b class="rec">● REC</b><span class="ts">CAM 03　一樓走廊　10:12:05</span></div><div class="cap">📹 監視器畫面</div></div>
 
 <div id="title">
  <div class="tscrim"></div><div class="tspark"><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -1110,7 +1120,7 @@ function bravo(txt){const d=document.createElement('div');d.className='bravo';d.
 
 
 /* ================= VRM CHARACTERS (VRoid) ================= */
-const VRM_FILES={me_b:'vrm/me_b.txt',me_g:'vrm/me_g.txt',xiaomei:'vrm/xiaomei.txt',teacher:'vrm/teacher.txt'};
+const VRM_FILES={me_b:'vrm/me_b.txt',me_g:'vrm/me_g.txt',xiaokai:'vrm/xiaokai.txt',xiaomei:'vrm/xiaomei.txt',teacher:'vrm/teacher.txt'};
 const VRM_H={me_b:1.42,me_g:1.40,xiaokai:1.42,xiaoyu:1.24,xiaomei:1.24,teacher:1.62};
 const VRM_SLEEVE={me_b:'#2e5bc0',me_g:'#d8343c'};
 const VBUF={},VLOAD={},VCH={};
@@ -1605,9 +1615,10 @@ let player=kid(campus,LOOK(),[0,0,4.5],0);
 let VRM_ME=null;
 const PLACES=[
   {id:'push',name:'悠悅樓平台',icon:'🤲',x:0,z:-4.2},
+  {id:'race',name:'一樓教室走廊',icon:'🏃',x:-14.2,z:2.0},
 ];
 /* 之後的關卡（製作中） */
-const LOCKED=[{icon:'🛝',name:'遊戲場溜滑梯',title:'溜滑梯逆向爬'},{icon:'🏃',name:'三樓走廊',title:'走廊競速推人'}];
+const LOCKED=[{icon:'🛝',name:'遊戲場溜滑梯',title:'溜滑梯逆向爬'}];
 PLACES.forEach(p=>{p.m=makeMarker(p.icon+' '+p.name);p.m.position.set(p.x,0,p.z);campus.add(p.m);});
 const arrow=new THREE.Group();{const sh=new THREE.Shape();sh.moveTo(0,0.42);sh.lineTo(0.34,0.02);sh.lineTo(0.13,0.02);sh.lineTo(0.13,-0.36);sh.lineTo(-0.13,-0.36);sh.lineTo(-0.13,0.02);sh.lineTo(-0.34,0.02);sh.closePath();
   const g=new THREE.ExtrudeGeometry(sh,{depth:0.08,bevelEnabled:true,bevelSize:0.02,bevelThickness:0.02,bevelSegments:1});g.translate(0,0,-0.04);
@@ -1886,11 +1897,11 @@ async function runCase(id){
     GAME.state='happy:'+id;fxHearts(true);SFX.warm();S.actors.forEach(c=>{if(c.root.visible&&c!==S.me&&c.pose==='idle')c.setMood('joy');});
     await sayAll(C.safeLines.slice(-1),S);storyOn(false);await reward(C);}
   else{REC=null;S.phase='tempt';FX.angelOut();musicPlay('devil');for(let i=C.keyIdx;i<C.steps.length;i++){if(C.steps[i].act){cmRun();await C.steps[i].act(S,o.v);cmHide();}}
-    cmApproach(o.v);await C.tragedy(S,o.v);cmHide();slowmo(1,0);musicPlay('tragedy');await sayAll([['nar',o.after]].concat(o.lines||C.afterShort||C.after.slice(0,2)),S);cmHide();if(o.self&&C.hospital)await C.hospital(S,o);else await jailScene(C);storyOn(false);await gameOver(C,o);}
+    cmApproach(o.v);await C.tragedy(S,o.v);cmHide();slowmo(1,0);musicPlay('tragedy');await sayAll([['nar',o.after]].concat(o.lines||C.afterShort||C.after.slice(0,2)),S);cmHide();if(o.self&&C.hospital)await C.hospital(S,o);else await jailScene(C,o);storyOn(false);await gameOver(C,o);}
 }
-async function jailScene(C){GAME.state='jail:'+C.id;musicPlay('devil');document.body.classList.add('jail');S.phase='jail';
+async function jailScene(C,o){GAME.state='jail:'+C.id;musicPlay('devil');document.body.classList.add('jail');S.phase='jail';
   devil.laugh=1;FX.devilIn();SFX.laugh();stinger('devil');
-  await sayAll([['devil',C.mock]],S);
+  await sayAll([['devil',(o&&o.mock)||C.mock]],S);
   const b=document.createElement('div');b.id='bars';b.innerHTML='<i></i><i></i>';document.body.appendChild(b);SFX.clang();rig.shake=0.3;await wait(1.1);
   angel.slot='angel';angel.root.visible=true;angel.out=false;angel.pop=0;angel.snapPos=true;angel.setMood('hurt');SFX.sob();
   await sayAll([['angel','嗚……對不起，這一次我沒能保護大家……']],S);SFX.laugh();}
@@ -1905,7 +1916,7 @@ async function reward(C){GAME.state='reward:'+C.id;save.done[C.id]=true;persist(
 async function gameOver(C,o){GAME.state='over:'+C.id;stinger('lose');musicPlay('over');if(hand)hand.visible=false;
   rig.shake=0.4;SFX.clang();
   const a=await overlay(`<div class="rs-title">GAME OVER</div><div class="rs-sub">悲劇重演了……</div>
-    <div class="rs-main"><div class="rs-badge"><div class="fine"><small>${o.self||C.kind==='news'?'後果':'真實判決'}</small>${o.award||C.award}</div><div class="rs-get">${o.self?'自己也會受傷':C.kind==='news'?'真實事件':'真實判決案例'}<b>${C.title}</b></div></div>
+    <div class="rs-main"><div class="rs-badge"><div class="fine"><small>${o.self||o.award||C.kind==='news'?'後果':'真實判決'}</small>${o.award||C.award}</div><div class="rs-get">${o.self?'自己也會受傷':o.award?'在轉角撞倒了同學':C.kind==='news'?'真實事件':'真實判決案例'}<b>${o.award?'':C.title}</b></div></div>
     <div class="rs-info panel"><div class="why">❌ 你選了：「${o.t}」<br>${o.why}</div><div class="ds">${o.desc||C.desc}</div><div class="tip">🤔 想一想：${C.hint}</div>
     <div class="btns"><button class="btn gray" data-a="map">回到校園</button><button class="btn big" data-a="retry">再挑戰一次 ↻</button></div></div></div>`,'full lose over');
   if(a==='retry'){cleanupCase();await runCase(C.id);}else await backToMap();}
@@ -1992,6 +2003,20 @@ function cmRender(dt){if(!CM.ps.length)return;
 /* ---- shot lists per case (the director's plan) ---- */
 const mePose=p=>{const me=S.me;me.pose=me.kind==='vrm'?p:({grabLow:'reach',kick:'run'}[p]||p);};
 const DIR={
+  race:{
+    insert:[S=>({shot:SH.face(S.kai),tag:'小凱領先你半個身體'}),
+      S=>({shot:()=>aim(_c3.set(cxAt(-0.8)+0.25,CR.fl+1.25,-0.8),_c1.set(-15.8,CR.fl+1.0,-6.6),44),tag:'轉角看不到對面'})],
+    run:S=>[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(cxAt(k.z-3.4)+0.1,CR.fl+1.05,k.z-3.4),_c1.set(cxAt(k.z+0.4),CR.fl+0.85,k.z+0.4),42);},fx:'speed',tag:'在走廊上狂奔',sfx:'咚咚咚——'},
+      {slot:'B',shot:SH.part(S.kai,'leftFoot',{f:0.95,r:0.45,y:0.2,fov:40}),fx:'speed',tag:'腳步越來越快'}],
+    approach:(S,v)=>{if(v==='solo'||v==='fast')return{pose:v==='fast'?'walk':'idle',stage:null,ps:[
+        {slot:'A',shot:()=>aim(_c3.set(-13.0,CR.fl+1.2,-7.6),_c1.set(-14.3,CR.fl+0.9,-7.4),46),tag:'轉角走過來的小美',sfx:'咚咚咚——'},{slot:'B',shot:SH.face(S.kai),fx:'speed',tag:'停不下來'}],burst:{t:'危險！',icon:'⚠️'}};
+      return{pose:'shove',stage:null,ps:[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(k.x+0.85,CR.fl+1.15,k.z+1.4),_c1.set(k.x+0.2,CR.fl+1.0,k.z+0.5),42);},fx:'speed',tag:'伸手推他的背',sfx:'推——'},
+        {slot:'B',shot:SH.face(S.kai),tag:'小凱完全沒注意'}],burst:{t:'危險！',icon:'⚠️'}};},
+    impact:S=>{if(S.v==='solo'||S.v==='fast')return{ps:[{slot:'A',shot:SH.face(S.mei),fx:'impact',tag:'小美'},{slot:'B',shot:()=>aim(_c3.set(-16.9,CR.fl+0.9,-4.6),_c1.set(-16.0,CR.fl+0.2,-6.3),42),fx:'impact',tag:'作業簿散了一地'}]};
+      return{ps:[{slot:'A',shot:()=>{const h=bonePos(S.kai,'head',_c1);aim(_c3.set(h.x+0.75,h.y+0.22,h.z+0.25),h,34);},fx:'impact',tag:'頭撞到地面'},{slot:'B',shot:SH.face(S.kai),fx:'impact',tag:'小凱'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]};},
+    safe:S=>({pose:'walk',ps:[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(cxAt(k.z-3)+0.2,CR.fl+1.15,k.z-3),_c1.set(cxAt(k.z+0.3),CR.fl+0.9,k.z+0.3),42);},fx:'glow',tag:'用走的，靠右走'},
+      {slot:'B',shot:()=>{const m=S.mei.root.position;aim(_c3.set(m.x-1.1,CR.fl+1.3,m.z+1.4),_c1.set(m.x,CR.fl+1.0,m.z),42);},fx:'glow',tag:'轉角放慢腳步'}]}),
+  },
   push:{
     insert:[S=>({shot:SH.part(S.mei,'rightHand',{f:0.55,r:-0.3,y:0.1,fov:36}),tag:'小美伸出了手掌'}),
       S=>({shot:()=>aim(_c3.set(-0.2,PF.fl+0.45,-8.4),_c1.set(-1.4,PF.fl+0.05,PF.z),40),tag:'她的身後，是硬硬的地板'})],
@@ -2363,7 +2388,7 @@ function colCheck(){if(!COL.on||!S||!curScene)return;const nav=navBuild(curScene
 
 /* ---- level loading screen: shown over a black stage while characters load, the scene is built and every shader is compiled,
    so the level starts only when it can draw its first frame without a stall ---- */
-const LOAD_TIPS={push:['手掌互推、拉手比力氣，一鬆手就會往後倒。','頭撞到了，就算不痛，也要告訴老師和家人。','想比賽，可以玩猜拳、跳格子這些安全的遊戲。']};
+const LOAD_TIPS={race:['走廊不奔跑、靠右走，轉角放慢腳步。','推人可能害別人一輩子受傷，也要負法律責任。','在走廊奔跑的人，就算被推，自己也要負一部分責任。'],push:['手掌互推、拉手比力氣，一鬆手就會往後倒。','頭撞到了，就算不痛，也要告訴老師和家人。','想比賽，可以玩猜拳、跳格子這些安全的遊戲。']};
 function loadingUI(){let el=document.getElementById('loadScr');if(el)return el;
   const st=document.createElement('style');st.textContent=`#loadScr{position:fixed;inset:0;z-index:45;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;
     background:radial-gradient(circle at 50% 35%,#24356f 0%,#141c3f 55%,#0b1028 100%);color:#fff;font-family:inherit;opacity:0;pointer-events:none;transition:opacity .45s}
@@ -2563,6 +2588,142 @@ CASES.push={id:'push',kind:'news',cmDanger:{pose:'pushHold',t:'危險！',icon:'
     ['xiaomei','知道了！我們再來一次，剪刀、石頭、布！']],
 };
 const F_=h=>PF.fl+h;
+/* ================= 第三關：一樓教室走廊・走廊競速推人 ================= */
+/* 走廊中心線（地板高 0.25 m）：由北往南略帶弧度，到 z≈-5.5 轉角往東 */
+const CR={fl:0.25,line:[[10,-18.2],[8,-18.5],[6,-18.85],[4,-19.1],[1.2,-19.2],[-1.4,-18.55],[-4,-17.55],[-5.5,-16.9]],start:8.4};
+function cxAt(z){const L=CR.line;if(z>=L[0][0])return L[0][1];for(let i=1;i<L.length;i++){if(z>=L[i][0]){const [z0,x0]=L[i-1],[z1,x1]=L[i];return x1+(x0-x1)*(z-z1)/(z0-z1);}}return L[L.length-1][1];}
+const LANE={me:0.32,kai:-0.32};
+function laneP(z,lane,out=new V3()){return out.set(cxAt(z)+lane,CR.fl,z);}
+/* 沿走廊移動角色（朝 -z 前進） */
+function glide(c,z0,z1,dur,pose,lane,ease=k=>k){c.pose=pose;c.gaitV=Math.abs(z1-z0)/dur;return tween(dur,k=>{const z=z0+(z1-z0)*ease(k);laneP(z,lane,c.root.position);const z2=z-0.6*Math.sign(z0-z1||1);c.root.rotation.y=Math.atan2(cxAt(z2)+lane-c.root.position.x,z2-z);});}
+function fpAt(z,lane,dz=-5,h=1.3){return [laneP(z,lane,new V3()).setY(CR.fl+h),new V3(cxAt(z+dz)+lane*0.5,CR.fl+h-0.12,z+dz)];}
+/* 掉出來的課本 */
+function makeBooks(sc,n=3){const cols=['#3f7fd6','#e2574c','#f2b632','#3fae6a','#9b6ad6'];const out=[];for(let i=0;i<n;i++){const g=new THREE.Group();
+  const b=new THREE.Mesh(new THREE.BoxGeometry(0.19,0.018+0.006*i,0.26),toon(cols[i%cols.length]));b.castShadow=true;g.add(b);
+  const pg=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.012+0.006*i,0.25),toon('#f7f3e6'));pg.position.set(0.006,0,0);g.add(pg);g.visible=false;sc.add(g);out.push(g);}return out;}
+function scatterBooks(bs,from,dir,spread=0.9,dur=0.75){bs.forEach((b,i)=>{b.visible=true;const a=(i-(bs.length-1)/2)*0.7+Math.random()*0.3,d=0.6+Math.random()*spread;
+  const to=new V3(from.x+dir.x*d+Math.cos(a)*0.35,CR.fl+0.012+i*0.004,from.z+dir.z*d+Math.sin(a)*0.35),p0=from.clone(),r0=Math.random()*6;
+  tween(dur*(0.8+Math.random()*0.4),k=>{b.position.lerpVectors(p0,to,k);b.position.y=lerp(p0.y,to.y,k)+Math.sin(k*PI)*0.45;b.rotation.set((1-k)*r0*2,r0+k*2,(1-k)*r0);if(k===1)b.rotation.set(0,r0+2,0);});});}
+/* 監視器畫面：從走廊天花板角落拍一張，轉成黑白、圈出推人的手 */
+const CCTV={};
+function cctvShot(pos,look,mark){try{const W=512,H=288;if(!CCTV.rt){CCTV.rt=new THREE.WebGLRenderTarget(W,H,{samples:2});CCTV.cam=new THREE.PerspectiveCamera(62,W/H,0.05,120);CCTV.cam.layers.enable(TPL);}
+  const cam=CCTV.cam;cam.position.copy(pos);cam.lookAt(look);cam.updateMatrixWorld();const fpb=S&&S.me&&S.me.root.visible;
+  renderer.setRenderTarget(CCTV.rt);renderer.render(curScene,cam);const px=new Uint8Array(W*H*4);renderer.readRenderTargetPixels(CCTV.rt,0,0,W,H,px);renderer.setRenderTarget(null);
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d'),id=g.createImageData(W,H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=((H-1-y)*W+x)*4,o=(y*W+x)*4;id.data[o]=SRGB[px[i]];id.data[o+1]=SRGB[px[i+1]];id.data[o+2]=SRGB[px[i+2]];id.data[o+3]=255;}g.putImageData(id,0,0);
+  let m=null;if(mark){const v=mark.clone().project(cam);m=[(v.x*0.5+0.5)*100,(0.5-v.y*0.5)*100];}
+  return{src:cv.toDataURL('image/jpeg',0.85),mark:m};}catch(e){console.warn('cctv',e);return null;}}
+function showCCTV(s){const el=$('#cctv');if(!s){return;}el.querySelector('img').src=s.src;const r=el.querySelector('.ring');if(s.mark){r.style.display='';r.style.left=s.mark[0]+'%';r.style.top=s.mark[1]+'%';}else r.style.display='none';
+  el.classList.remove('hide');requestAnimationFrame(()=>el.classList.add('on'));SFX.pop&&SFX.pop();}
+function hideCCTV(){const el=$('#cctv');el.classList.remove('on');setTimeout(()=>el.classList.add('hide'),400);}
+function raceReset(S){const F=CR.fl,k=S.kai,m=S.mei,t=S.tea;
+  [k,m,t].forEach(c=>{c.root.rotation.order='XYZ';c.root.rotation.set(0,0,0);c.body&&c.body.rotation.set(0,0,0);c.gaitV=null;c.snap=true;});
+  laneP(CR.start-1.1,LANE.kai,k.root.position);k.root.rotation.y=0.25;k.pose='idle';k.setMood('joy');k.root.visible=true;
+  m.root.visible=false;m.carry=false;t.root.visible=false;S.books.forEach(b=>b.visible=false);S.mbooks.forEach(b=>b.visible=false);
+  S.me.pose='idle';const [p]=fpAt(CR.start,LANE.me,-1.5);camCut(p,new V3(k.root.position.x,F+1.15,k.root.position.z),true);}
+/* 小美抱著作業簿從轉角走出來 */
+function meiCarry(S,on){const m=S.mei;m.carry=on;S.mbooks.forEach((b,i)=>{if(on){m.root.add(b);b.visible=true;b.position.set(0,0.86+i*0.03,0.2);b.rotation.set(0,0.1*i,0);}});}
+CASES.race={id:'race',cmDanger:{pose:'run',t:'危險！',icon:'⚠️',tag:'伸手推人',sfx:'推——',vtag:'前面的小凱'},
+  mock:'你又被我騙了！走廊上推一下，小凱的頭骨就裂了，還要賠十二萬四千元！',roles:['xiaokai','xiaomei','teacher'],amb:'corridor',no:3,ref:'',title:'走廊競速推人',icon:'🏃',badge:'走廊安全徽章',badgeIcon:'🏃',
+  desc:'兩名學生在走廊上比賽跑步，後面的學生伸手推前面同學的背，對方往前撲倒，造成頭骨骨折、腦出血、臉部神經受傷和聽力受損。監視器畫面顯示是故意推人：推人的學生負 90% 責任，在走廊奔跑的學生也要負 10% 責任。',award:'判賠 12.4 萬元',
+  preview:'小凱要跟你比賽，看誰先跑到走廊轉角……',hint:'朋友要在走廊比賽跑步，你可以怎麼說？',
+  lesson:'走廊不奔跑、靠右走，轉角放慢腳步。不推人：推人可能害別人一輩子受傷，也要負法律責任。',
+  build(){const sc=campus,F=CR.fl;const S={scene:sc};
+    S.kai=npc(sc,'xiaokai',[cxAt(CR.start)+LANE.kai,F,CR.start],PI);S.mei=npc(sc,'xiaomei',[-14.8,F,-7],0);S.tea=npc(sc,'teacher',[-18.2,F,6.5],0);
+    S.me=meChar(sc,[cxAt(CR.start)+LANE.me,F,CR.start],PI);S.me.root.visible=false;S.mei.root.visible=false;S.tea.root.visible=false;
+    S.books=makeBooks(sc,3);S.mbooks=makeBooks(sc,4);
+    S.fpBody=S.me.kind==='vrm';S.actors=[S.kai,S.mei,S.tea,S.me];S.victim=S.kai;S.floor=(x,z)=>curScene===WARD?0:campusFloor(x,z);S.eye=1.3;Object.assign(CHAR,{xiaokai:S.kai,xiaomei:S.mei,teacher:S.tea,me:S.me});
+    PLACES.forEach(p=>p.m.visible=false);arrow.visible=false;guide.visible=false;
+    S.snapX=()=>({b:S.books.map(b=>[b.visible,...b.position.toArray(),b.rotation.y]),ko:S.kai.root.rotation.order});
+    S.applyX=x=>{x.b.forEach((a,i)=>{const b=S.books[i];b.visible=a[0];b.position.set(a[1],a[2],a[3]);b.rotation.set(0,a[4],0);});S.kai.root.rotation.order=x.ko;};
+    S.start=()=>{raceReset(S);S.kai.setMood('joy');};
+    S.cleanup=()=>{(S.wrap||[]).forEach(m=>m.parent&&m.parent.remove(m));if(S.wrap&&S.wrap.restore)S.wrap.restore();hideCCTV();
+      S.books.concat(S.mbooks).forEach(b=>b.parent&&b.parent.remove(b));S.mei.carry=false;
+      PLACES.forEach(p=>p.m.visible=true);[S.kai,S.mei,S.tea].forEach(c=>{c.root.rotation.order='XYZ';if(c.root.parent)c.root.parent.remove(c.root);LIVE.delete(c);});S.me.root.visible=true;};
+    return S;},
+  intro:[['nar','下課了，你和小凱走出教室，來到一樓走廊。'],
+    ['xiaokai','我們來比賽！看誰先跑到走廊轉角，輸的人幫對方揹便當盒！'],['me','好啊，預備——'],S=>{const k=S.kai;laneP(CR.start-0.25,LANE.kai,k.root.position);k.root.rotation.y=PI;k.pose='brace';const [p,l]=fpAt(CR.start,LANE.me,-4);camTo(p,l,0.5);},['xiaokai','起跑！'],
+    ()=>FX.devilIn(),['devil','衝啊！走廊又沒什麼人，跑快一點！']],
+  steps:[
+    {lines:[S=>{const [p,l]=fpAt(CR.start,LANE.me,-5);camTo(p,l,0.6);},['nar','你們在走廊上狂奔，小凱領先你半個身體。']],devil:'跑快一點！不要輸給他！',
+      act:async(S,v)=>{const F=CR.fl,k=S.kai;FX.devilOut();
+        if(v==='solo'){k.pose='run';await Promise.all([glide(k,k.root.position.z,-4.6,3.0,'run',LANE.kai),tween(3.0,q=>{const kp=k.root.position;rig.look.lerp(_tp.set(kp.x,F+1.0,kp.z),0.2);})]);return;}
+        const fast=v==='fast',d=fast?4.2:3.0,zk=fast?-1.2:3.0,zm=fast?-0.4:4.2,pose=fast?'walk':'run';S.me.pose=pose;
+        await Promise.all([glide(k,k.root.position.z,zk,d,pose,LANE.kai),tween(d,q=>{const z=CR.start+(zm-CR.start)*q;const [p,l]=fpAt(z,LANE.me,-4,1.3);p.y+=Math.abs(Math.sin(q*d*(fast?7:10)))*0.05;rig.pos.copy(p);rig.look.copy(l);})]);}},
+    {lines:[['xiaokai','我要贏了！便當盒你揹定了！']],devil:'你要輸了！伸手推他一下，他慢下來你就贏了！反正只是玩玩而已！'}],
+  keyIdx:0,
+  async tragedy(S,v){const F=CR.fl,k=S.kai;S.v=v;
+    if(v==='solo'||v==='fast')return raceCorner(S,v);
+    /* 伸手推小凱的背 */
+    S.me.pose='shove';k.pose='run';const zk=k.root.position.z;
+    await Promise.all([glide(k,zk,zk-0.35,0.3,'run',LANE.kai),tween(0.3,q=>{const z=4.2-0.75*q;const [p,l]=fpAt(z,LANE.me*0.6,-2,1.3);rig.pos.copy(p);rig.look.lerp(_tp.set(k.root.position.x,F+1.0,k.root.position.z),0.3);})]);
+    SFX.drive();rig.shake=0.25;S.cctv=cctvShot(new V3(cxAt(-1.2)-0.55,F+2.75,-1.2),new V3(cxAt(3.4),F+0.9,3.4),bonePos(S.me,'rightHand',new V3()));
+    /* 小凱往前撲倒，頭側面撞到地面，課本從書包掉出來 */
+    k.pose='trip';k.setMood('surprised');k.root.rotation.order='YXZ';const q0=k.root.position.clone(),yaw=k.root.rotation.y;let hit=false;
+    tween(0.4,()=>{},);scatterBooks(S.books,q0.clone().setY(F+1.0),new V3(Math.sin(yaw),0,Math.cos(yaw)),1.0,0.8);
+    await tween(0.7,q=>{const e=easeI(q);k.root.rotation.set((PI/2-0.06)*e,yaw,0.25*e);k.root.position.set(q0.x+Math.sin(yaw)*0.55*q,q0.y+0.1*e,q0.z+Math.cos(yaw)*0.55*q);
+      rig.look.lerp(_tp.set(k.root.position.x+Math.sin(yaw)*1.0*e,F+0.25+0.8*(1-e),k.root.position.z+Math.cos(yaw)*1.0*e),0.25);
+      if(!hit&&q>0.88){hit=true;FX.devilOut();impact();SFX.crack();}});
+    SFX.thud();rig.shake=0.4;k.pose='lie';k.setMood('hurt');await wait(1.1);await fade(1,350);
+    S.me.root.visible=true;laneP(3.4,LANE.me,S.me.root.position);S.me.root.rotation.set(0,PI,0);S.me.pose='point';S.me.setMood('surprised');S.me.gaitV=null;
+    camCut(new V3(cxAt(-0.9)+0.15,F+1.7,-0.9),new V3(cxAt(2.6),F+0.45,2.6));await fade(0,350);},
+  after:[['nar','小凱趴在地上一動也不動，你的手還停在半空中。'],S=>{S.me.pose='lean';S.me.setMood('sad');},['me','小凱？小凱！你不要嚇我！'],
+    async S=>{const t=S.tea,k=S.kai;t.root.visible=true;t.root.position.set(cxAt(6.2)-0.4,CR.fl,6.2);t.setMood('surprised');await walkTo(t,new V3(cxAt(0.6)-0.55,CR.fl,0.6),1.8,'run');faceTo(t,k.root.position.x,k.root.position.z);t.pose='lean';},
+    ['teacher','不要動他！你快去健康中心叫人，老師打一一九！'],()=>cmAmb(),['nar','救護車很快就趕到了，把小凱送到醫院。'],()=>cmHide(),S=>raceWard(S)],
+  afterShort:[S=>{S.me.pose='lean';},['me','小凱？小凱！你不要嚇我！'],
+    async S=>{const t=S.tea,k=S.kai;t.root.visible=true;t.root.position.set(cxAt(6.2)-0.4,CR.fl,6.2);await walkTo(t,new V3(cxAt(0.6)-0.55,CR.fl,0.6),1.8,'run');faceTo(t,k.root.position.x,k.root.position.z);t.pose='lean';},
+    ['teacher','不要動他！老師馬上打一一九！'],()=>cmAmb(),['nar','救護車很快就到了，把小凱送到醫院。'],()=>cmHide()],
+  regret:[['me','如果那時候，我沒有伸手就好了……'],()=>FX.devilIn(),['devil','是他自己說要比賽的，又不是你一個人的錯。']],
+  angel:[['angel','走廊不是賽跑場，轉角也看不到對面的人。伸手推人，可能害朋友一輩子受傷。'],['angel','我讓時間倒轉，回到小凱說要比賽的時候。這一次，請你自己選。']],
+  keyLines:[S=>{raceReset(S);},['xiaokai','我們來比賽！看誰先跑到走廊轉角，輸的人幫對方揹便當盒！'],['angel','這一次，你可以自己選。想一想，在走廊上該怎麼做？']],
+  key:{q:'小凱要跟你比賽跑到走廊轉角，你會怎麼回答？',opts:[
+    {t:'走廊不能跑。我們用走的去，要比賽等體育課到操場比。',ok:true},
+    {t:'好啊，輸的人幫對方揹便當盒！',v:'race',after:'你們在走廊上狂奔，快要輸的時候，你忍不住伸手推了小凱一下。',why:'在走廊奔跑本來就危險，快輸的時候，更容易做出推人這種危險的事。'},
+    {t:'我不跑，你自己跑。',v:'solo',award:'小美手腕扭傷',mock:'你又被我騙了！你沒有勸小凱別跑，他在轉角撞倒了小美！',after:'小凱一個人衝了出去，在轉角撞上抱著作業簿走過來的小美。',why:'自己不跑還不夠，也要勸朋友不要在走廊奔跑。',
+      lines:[['xiaomei','好痛！我的作業簿……'],['xiaokai','對不起！我沒看到你從轉角走過來……'],async S=>{await raceTeacherCorner(S);},['teacher','小美，手先不要動，老師帶你去健康中心。'],['nar','小美的手腕扭傷了，作業簿也散了一地。']]},
+    {t:'我們用快走的，不算跑。',v:'fast',award:'小美手腕扭傷',mock:'你又被我騙了！快走也停不下來，轉角一撞，小美就受傷了！',after:'你們越走越快，小凱在轉角撞上了抱著作業簿走過來的小美。',why:'快走也很難馬上停下來。走廊轉角看不到對面，一定要放慢腳步。',
+      lines:[['xiaomei','好痛！我的作業簿……'],['xiaokai','對不起！我走太快，停不下來……'],async S=>{await raceTeacherCorner(S);},['teacher','小美，手先不要動，老師帶你去健康中心。'],['nar','小美的手腕扭傷了，作業簿也散了一地。']]}]},
+  async safe(S){const F=CR.fl,k=S.kai,m=S.mei;
+    await sayAll([['xiaokai','好啦，那體育課再比！反正我一定贏。']],S);
+    /* 兩人靠右慢慢走，小美從轉角抱著作業簿走過來，大家都平安走過 */
+    S.me.pose='walk';m.root.visible=true;m.root.rotation.order='XYZ';m.root.position.set(-13.4,F,-7.6);meiCarry(S,true);m.setMood('joy');
+    const W=5.2;walkTo(m,new V3(-16.4,F,-5.9),W*0.8,'walk').then(()=>{m.root.position.set(-16.4,F,-5.9);walkTo(m,new V3(cxAt(-2.2)-0.3,F,-2.2),1.6,'walk').then(()=>{faceTo(m,cxAt(-1)+0.3,-1);m.pose='idle';});});
+    k.root.rotation.y=PI;await Promise.all([glide(k,k.root.position.z,-0.9,W,'walk',-0.15),tween(W,q=>{const z=CR.start+(0.1-CR.start)*q;const [p,l]=fpAt(z,0.45,-4,1.3);p.y+=Math.abs(Math.sin(q*W*5))*0.02;rig.pos.copy(p);rig.look.copy(l);})]);
+    k.pose='idle';faceTo(k,m.root.position.x,m.root.position.z);S.me.pose='idle';
+    await camTo(rig.pos.clone(),new V3(m.root.position.x,F+1.1,m.root.position.z),0.6);},
+  safeLines:[['xiaomei','幸好你們沒有用跑的，不然我一定被撞倒。'],
+    async S=>{const t=S.tea;t.root.visible=true;t.root.position.set(-14.4,CR.fl,-7.4);t.setMood('joy');await walkTo(t,new V3(cxAt(-1.4)+0.1,CR.fl,-1.4),1.6,'walk');faceTo(t,rig.pos.x,rig.pos.z);await camTo(rig.pos.clone(),new V3(t.root.position.x,CR.fl+1.45,t.root.position.z),0.6);},
+    ['teacher','走廊不是賽跑場。轉角看不到對面的人，跑太快就停不下來。你們今天做得很好。'],
+    S=>{S.kai.pose='cheer';camTo(rig.pos.clone(),new V3(S.kai.root.position.x,CR.fl+1.2,S.kai.root.position.z),0.6);},
+    ['xiaokai','體育課見！這次我們在操場好好比一場！']],
+};
+/* 只有小凱一個人跑（或兩人快走）：在轉角撞上走過來的小美 */
+async function raceCorner(S,v){const F=CR.fl,k=S.kai,m=S.mei;
+  m.root.visible=true;m.root.rotation.order='XYZ';m.root.position.set(-13.6,F,-7.5);meiCarry(S,true);m.setMood('joy');
+  camCut(new V3(-15.3,F+1.7,-3.5),new V3(-16.0,F+0.55,-6.3));
+  const zk=k.root.position.z;walkTo(m,new V3(-16.25,F,-6.25),1.2,'walk');
+  await glide(k,zk,-5.3,Math.max(0.35,(zk+5.0)/(v==='fast'?3.4:5.6)),v==='fast'?'walk':'run',LANE.kai*0.4);
+  const hp=bonePos(m,'chest',new V3());impact();SFX.crack&&SFX.crack();
+  S.mbooks.forEach(b=>{const p=b.getWorldPosition(new V3());campus.attach(b);b.position.copy(p);});meiCarry(S,false);
+  scatterBooks(S.mbooks,hp,new V3(0.6,0,-0.5),1.2,0.8);
+  k.pose='hurtSit';k.setMood('surprised');m.pose='hurtArm';m.setMood('hurt');faceTo(m,k.root.position.x,k.root.position.z);
+  m.root.position.set(-16.1,F,-6.45);rig.shake=0.35;await wait(1.6);}
+async function raceTeacherCorner(S){const t=S.tea;t.root.visible=true;t.root.position.set(-13.2,CR.fl,-7.6);await walkTo(t,new V3(-15.4,CR.fl,-7.0),1.4,'run');faceTo(t,S.mei.root.position.x,S.mei.root.position.z);t.pose='lean';}
+/* 病房與監視器畫面 */
+async function raceWard(S){const rec=REC;REC=null;const k=S.kai,t=S.tea,me=S.me;
+  await fade(1,700);cmHide();const W=wardScene();curScene=W;
+  [k,t,me].forEach(c=>{c.root.parent&&c.root.parent.remove(c.root);W.add(c.root);c.root.visible=true;c.snap=true;});
+  k.root.rotation.order='XYZ';k.root.rotation.set(-PI/2,0,0);k.root.position.set(-1.6,0.62,-0.95);k.pose='bed';k.setMood('sad');S.wrap=headWrap(k);
+  t.root.rotation.set(0,0,0);t.root.position.set(-2.6,0,-0.9);faceTo(t,-1.6,-1.5);t.pose='idle';t.setMood('sad');
+  me.root.rotation.set(0,0,0);me.root.position.set(-0.55,0,-2.05);faceTo(me,-1.6,-1.6);me.pose='headDown';me.setMood('sad');
+  rig.fp=false;camCut(new V3(0.55,1.95,0.9),new V3(-1.55,0.72,-1.65));musicPlay('tragedy');await fade(0,600);
+  await sayAll([()=>cmShow('cm-ward',[{slot:'A',shot:()=>{const h=bonePos(k,'head',_c1);aim(_c3.set(h.x+0.55,h.y+0.45,h.z+0.35),h,30);},fx:'dark',tag:'頭骨骨折、腦出血'}]),
+    ['nar','小凱的頭骨裂了，腦裡面也在出血。臉的一邊動不太起來，一邊的耳朵也聽不清楚了。'],()=>cmHide(),
+    ()=>showCCTV(S.cctv),['teacher','監視器拍得很清楚，是伸手推人。這不是玩玩而已了。'],['me','我只是想贏……我不知道會這樣……'],()=>hideCCTV()],S);
+  await fade(1,600);(S.wrap||[]).forEach(o=>o.parent&&o.parent.remove(o));if(S.wrap&&S.wrap.restore)S.wrap.restore();S.wrap=null;
+  [k,t,me].forEach(c=>{W.remove(c.root);campus.add(c.root);c.snap=true;});curScene=campus;k.root.visible=false;t.root.visible=false;me.root.visible=false;me.pose='idle';
+  const [p]=fpAt(3.6,LANE.me*0.5,-3,1.3);camCut(p,new V3(cxAt(1.2),CR.fl+0.3,1.2),true);REC=rec;S.noRec=true;await fade(0,600);}
+
 /* 三天後：黑幕、救護車子畫面、病房 */
 async function threeDaysLater(S){const rec=REC;REC=null;const m=S.mei,t=S.tea,me=S.me,F=PF.fl;
   await fade(1,700);cmHide();const N=$('#night');N.querySelector('b').textContent='三天後……';N.classList.add('on');const sc0=curScene;curScene=NIGHT;storyOn(true);await fade(0,300);
@@ -2641,14 +2802,14 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
       ['b','g'].forEach(g=>{const t=thumbFor('me_'+g);if(t){const e=$('#ph_'+g);e.style.backgroundImage=`url(${t})`;e.textContent='';}});}
     /* warm up: compile every character's shaders now so nothing hitches mid-story */
     try{const tmp=[];ids.forEach(id=>{const c=VCH[id];if(c&&!c.root.parent){campus.add(c.root);c.root.position.set(0,0,20);tmp.push(c);}});renderer.compile(campus,camera);tmp.forEach(c=>campus.remove(c.root));}catch(e){}
-    ['xiaomei','teacher'].forEach(k=>thumbFor(k));
+    ['xiaokai','xiaomei','teacher'].forEach(k=>thumbFor(k));
     await Promise.race([vp,new Promise(r=>setTimeout(r,8000))]);
   }catch(e){console.warn('載入失敗，改用內建角色',e);GAME.vrmOK=!!(VCH.me_b&&VCH.me_g);}
   bar.style.width='100%';lab.textContent='準備完成！';await new Promise(r=>setTimeout(r,250));
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
 GAME.dbg=()=>({THREE,navBuild,navPath,navHit,walkPath,COL,CHAR,stairGait,stairWalk,armIK,ballAnchor,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
-window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
+window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={getS:()=>S,TS:()=>TS,CMf:()=>CM.frozen,raceTeacherCorner,raceCorner,tw,campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
 
 </script>

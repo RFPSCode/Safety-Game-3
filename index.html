@@ -1425,10 +1425,11 @@ async function loadCampusModel(onProg){
   root.traverse(o=>{if(!o.isMesh)return;const t=tagOf(o);
     if(/_LOD[12]$/.test(t)){drop.push(o);return;}
     if(/_NAV$/.test(t)){o.visible=false;o.userData.noCol=true;CAMPUS.floorM.push(o);return;}
-    if(/_COL_/.test(t)){o.visible=false;o.userData.noCol=true;if(!/PlatformSteps|Ground_Base/.test(t)){const m=new THREE.Mesh(o.geometry,new THREE.MeshBasicMaterial());m.applyMatrix4(o.matrixWorld);col.add(m);}return;}
+    if(/_COL_/.test(t)){o.visible=false;o.userData.noCol=true;if(!/PlatformSteps|Ground_Base|SW_PlazaSteps|Classroom_1F_Corridor_COL/.test(t)){const m=new THREE.Mesh(o.geometry,new THREE.MeshBasicMaterial());m.applyMatrix4(o.matrixWorld);col.add(m);}return;}
     o.castShadow=true;o.receiveShadow=true;
-    (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m&&m.isMeshStandardMaterial){/* 模型匯出時磚牆、窗框被標成金屬，沒有反射環境就變全黑：金屬度壓低 */if(m.metalness>0.2){m.metalness=0.15;m.metalnessMap=null;m.needsUpdate=true;}if(env){m.envMap=env;m.envMapIntensity=1.2;}
-      /* 建築補光：用自身貼圖當微弱自發光，等於只照建築的柔和環境光；角色不受影響，也不會過曝 */if(m.map&&!/Glass/i.test(m.name||'')){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=0.34;m.needsUpdate=true;}if(m.map)m.map.anisotropy=MAXANI;
+    /* 一樓教室走廊：用實際的牆和柱子當碰撞（它的碰撞盒把整條走廊都包起來了） */if(/Classroom_1F_Corridor_LOD0/.test(t)){const m=new THREE.Mesh(o.geometry,new THREE.MeshBasicMaterial());m.applyMatrix4(o.matrixWorld);col.add(m);}
+    (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m&&m.isMeshStandardMaterial){/* 模型匯出時磚牆、窗框被標成金屬，沒有反射環境就變全黑：金屬度壓低 */if(m.metalness>0.2){m.metalness=0.15;m.metalnessMap=null;m.needsUpdate=true;}if(env){m.envMap=env;m.envMapIntensity=0.5;}
+      /* 建築補光：用自身貼圖當微弱自發光，等於只照建築的柔和環境光；角色不受影響，也不會過曝 */if(m.map&&!/Glass/i.test(m.name||'')){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=0.1;m.needsUpdate=true;}if(m.map)m.map.anisotropy=MAXANI;
       /* 深色玻璃門窗：加一點天空反光的亮度，不再是黑洞 */if(/Glass/i.test(m.name||'')){m.emissive=new THREE.Color('#6f8296');m.emissiveIntensity=0.55;m.roughness=0.2;m.envMapIntensity=1.6;m.needsUpdate=true;}}});});
   drop.forEach(o=>o.parent&&o.parent.remove(o));
   CAMPUS.hedge.forEach(h=>{const m=new THREE.Mesh(new THREE.BoxGeometry(h.geometry.parameters.width,4,h.geometry.parameters.depth),new THREE.MeshBasicMaterial());m.position.set(h.position.x,2,h.position.z);col.add(m);});
@@ -2647,7 +2648,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
 GAME.dbg=()=>({THREE,navBuild,navPath,navHit,walkPath,COL,CHAR,stairGait,stairWalk,armIK,ballAnchor,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
-window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
+window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
 
 </script>

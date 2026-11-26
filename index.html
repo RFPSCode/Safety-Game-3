@@ -110,6 +110,9 @@ button{font-family:inherit;cursor:pointer}
 #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:40;transition:opacity .5s}
 #flash{position:fixed;inset:0;pointer-events:none;z-index:41;opacity:0}
 #rw{position:fixed;inset:0;z-index:35;display:grid;place-items:center;pointer-events:none}
+#rp{position:fixed;left:50%;top:max(14px,env(safe-area-inset-top));transform:translateX(-50%);z-index:36;pointer-events:none;background:rgba(20,20,40,.78);color:#fff;font:900 18px/1 system-ui,sans-serif;letter-spacing:.1em;padding:10px 18px;border-radius:999px;border:2px solid #ffd54a;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#rp b{color:#ff5a5a;margin-right:8px;animation:rpb 1s steps(2) infinite}@keyframes rpb{50%{opacity:0}}
+body.replay #cv{filter:saturate(.6) contrast(1.05)}
 #rw .c{width:min(260px,50vw);height:min(260px,50vw);position:relative;opacity:.9;filter:drop-shadow(0 0 20px #fff6c0)}
 #rw .c svg{width:100%;height:100%}
 #rw .hand{transform-origin:100px 100px;animation:back 0.6s linear infinite}
@@ -441,7 +444,7 @@ let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});}catch(e){
   document.body.insertAdjacentHTML('beforeend','<div id="err">這台裝置的瀏覽器沒有開啟 3D 繪圖（WebGL），無法執行這個遊戲。<br>請改用 Chrome／Edge／Safari 最新版。</div>');throw e;}
 const glInfo=(()=>{try{const gl=renderer.getContext();const ext=gl.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):''}catch(e){return ''}})();
-const SLOW=/swiftshader|llvmpipe|software/i.test(glInfo);
+const SLOW=/swiftshader|llvmpipe|software/i.test(glInfo)&&!/[?&]hq=1/.test(location.search);
 renderer.setPixelRatio(Math.min(devicePixelRatio,SLOW?1:2));
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;
@@ -1482,7 +1485,8 @@ const PLAY={name:'play',step:0.15,planMaxY:0.5,file:'models/play.txt',X0:-6.3,X1
 const NURSE={name:'nurse',file:'models/nurse.txt',X0:-3.8,X1:4.0,Z0:-3.1,Z1:2.0,floorM:[],ready:false,fc:new Map(),skipCol:/RoomWalls|RoomFloor|RoomCeiling/};
 function envScene(E,{sky='#cfe3f3',fog=[40,140],sun=2.2,hemi=1.4,dir=[8,22,14],shadowR=14,indoor=false}={}){const sc=new THREE.Scene();sc.background=new THREE.Color(sky);if(fog)sc.fog=new THREE.Fog(sky,fog[0],fog[1]);
   E.sun=addLights(sc,{sun,hemi,dir,shadowR,target:[0,0,0]});E.sc=sc;sc.userData.E=E;E.root=new THREE.Group();sc.add(E.root);
-  if(indoor){for(const [x,z] of [[-2.35,-1.5],[0.25,-1.5],[2.25,-1.5],[0.55,0.85]]){const p=new THREE.PointLight(0xfff6ea,1.6,7,1.3);p.position.set(x,2.55,z);sc.add(p);}}
+  /* 室內：用一盞從天花板正上方照下來的平行光代替四盞點光源（手機的繪圖晶片遇到太多光源時，角色臉部的材質可能編譯失敗而整張臉不見） */
+  if(indoor){const c=new THREE.DirectionalLight(0xfff6ea,1.1);c.position.set(0.3,6,0.6);c.target.position.set(0,0,-0.6);sc.add(c,c.target);}
   return sc;}
 async function loadEnv(E,onProg){if(E.ready)return E;if(E.loading)return E.loading;
   E.loading=(async()=>{const buf=await fetchBuf(E.file,onProg);const gltf=await new Promise((ok,ng)=>new GLTFLoader().parse(buf,'',ok,ng));
@@ -1503,7 +1507,7 @@ async function loadEnv(E,onProg){if(E.ready)return E;if(E.loading)return E.loadi
     if(E.onReady)E.onReady(E);return E;})();
   return E.loading;}
 envScene(PLAY,{sky:'#cfe3f3',fog:[45,160],sun:2.3,hemi:1.5,dir:[6,20,12],shadowR:12});
-envScene(NURSE,{sky:'#e9edf0',fog:null,sun:0.9,hemi:1.3,dir:[8,6,-2],shadowR:6,indoor:true});
+envScene(NURSE,{sky:'#e9edf0',fog:null,sun:0.9,hemi:1.75,dir:[8,6,-2],shadowR:6,indoor:true});
 /* 病房（三天後）：獨立的小場景 */
 let WARD=null;
 function wardScene(){if(WARD)return WARD;const sc=new THREE.Scene();sc.background=new THREE.Color('#dfe4e6');
@@ -1743,6 +1747,13 @@ function renderDest(){const L=$('#dlist');const html=PLACES.map(p=>{const C=CASE
 function showNear(id){const el=$('#near');if(!id||busy||mode!=='map'){el.classList.add('hide');return;}const C=CASES[id],p=PLACES.find(q=>q.id===id);
   el.querySelector('.t').textContent=`${p.icon} ${p.name}`;el.querySelector('.d').innerHTML=`${C.kind==='news'?'真實事件':'真實判決案例'}：<b>${C.title}</b><br>${C.preview}`;el.classList.remove('hide');SFX.pop();}
 $('#enter').onclick=()=>{if(MAP.near&&!busy)enterCase(MAP.near);};
+/* 執行中如果出錯，在畫面左下角顯示一小行錯誤訊息（點一下就關掉），方便老師截圖回報 */
+{const seen=new Set();const show=m=>{m=String(m||'').slice(0,140);if(!m||/NotAllowed|AbortError|play\(\)|interrupted|ResizeObserver/.test(m)||seen.has(m)||seen.size>3)return;seen.add(m);const d=document.createElement('div');d.textContent='⚠ 程式錯誤：'+m;d.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99;max-width:80vw;background:rgba(120,0,0,.85);color:#fff;font:12px/1.35 system-ui;padding:6px 9px;border-radius:8px';d.onclick=()=>d.remove();document.body.appendChild(d);setTimeout(()=>d.remove(),20000);};
+  window.__err=show;addEventListener('error',e=>show((e.message||'')+(e.lineno?' @'+e.lineno:'')));addEventListener('unhandledrejection',e=>show(e.reason&&(e.reason.stack||e.reason.message)||e.reason));}
+/* 材質保險：角色的 MToon 材質如果在這支手機上編譯失敗（畫不出來），自動換成一般的卡通材質，至少臉和身體一定看得到 */
+function fallbackMat(m){const f=new THREE.MeshToonMaterial({map:m.map||null,color:(m.color&&m.color.clone())||new THREE.Color(1,1,1),transparent:!!m.transparent,alphaTest:m.alphaTest||0,side:m.side,depthWrite:m.depthWrite});f.name=(m.name||'')+'(fallback)';return f;}
+function shaderGuard(){if((shaderGuard.n=(shaderGuard.n||0)+1)%30)return;LIVE.forEach(c=>{if(c.kind!=='vrm'||!c.vrm||c.root.parent!==curScene)return;c.vrm.scene.traverse(o=>{if(!o.isMesh)return;const arr=Array.isArray(o.material),ms=arr?o.material:[o.material];let ch=false;
+  const nm=ms.map(m=>{const pr=renderer.properties.get(m).currentProgram;if(pr&&pr.diagnostics&&pr.diagnostics.runnable===false){ch=true;console.warn('MToon fallback',o.name,m.name);window.__err&&window.__err('角色材質無法在這台裝置顯示，已改用簡化材質（'+o.name+'）');return fallbackMat(m);}return m;});if(ch)o.material=arr?nm:nm[0];});});}
 let toastT=0;function toast(s,ms=2200){const t=$('#toast');t.textContent=s;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),ms);}
 
 /* ---------- story UI ---------- */
@@ -2876,6 +2887,35 @@ function slideProfile(){const E=PLAY,rc=new THREE.Raycaster();rc.ray.direction.s
 function slideY(z){const P=SL.prof;if(!P||!P.length)return 0;if(z<=P[0][0])return P[0][1];for(let i=1;i<P.length;i++)if(z<=P[i][0]){const [z0,y0]=P[i-1],[z1,y1]=P[i];return y0+(y1-y0)*(z-z0)/(z1-z0);}return P[P.length-1][1];}
 function slidePitch(z){return Math.atan2(slideY(z-0.15)-slideY(z+0.15),0.3);}   /* 往上（-z）的仰角 */
 /* 坐在滑道上（腳朝下、往 +z 滑）；c.root 放在滑道表面 */
+/* 攀爬網：網子從地面（x=netX0）斜斜往上接到平台（x=netX1）。身體順著網子往前傾、面向平台往上爬 */
+const NET_LEAN=0.62;
+function netY(x){return SL.deck*Math.min(1,Math.max(0,(SL.netX0-x)/(SL.netX0-SL.netX1)));}
+function netX(q){return SL.netX0+0.12+(SL.netX1-0.02-(SL.netX0+0.12))*q;}
+function netOn(c,q,dz=0){const x=netX(q);c.root.rotation.order='YXZ';c.root.position.set(x,netY(x)+0.03,SL.netZ+dz);c.root.rotation.set(NET_LEAN*(1-0.5*Math.max(0,q-0.85)/0.15),-PI/2,0);c.pose='climb';}
+function headOn(root,lean,yaw,h=1.22){const f=new V3(Math.sin(yaw),0,Math.cos(yaw));return root.clone().addScaledVector(f,Math.sin(lean)*h).setY(root.y+Math.cos(lean)*h);}
+/* 主角（第一人稱）爬攀爬網：面向平台、順著網子往上，手腳交替；到頂端跪上平台再站起來 */
+async function fpNetClimb(S,dz=0,dur=2.6){const me=S.me,D=SL.deck;S.fpYaw=-PI/2;S.fpRoot=new V3();me.pose='climb';
+  const at=q=>{netOn(me,q,dz);S.fpRoot.copy(me.root.position);S.fpPitch=me.root.rotation.x;rig.pos.copy(headOn(S.fpRoot,S.fpPitch,-PI/2));rig.look.set(rig.pos.x-1.6,rig.pos.y+0.15-0.9*(1-q),SL.netZ+dz);};
+  at(0);await tween(dur,q=>{me.climbK=q*6;at(q);});me.climbK=null;
+  /* 跪上平台 */
+  me.pose='kneelUp';const r0=S.fpRoot.clone(),r1=new V3(SL.netX1-0.25,D,SL.netZ+dz);
+  await tween(0.5,q=>{S.fpRoot.lerpVectors(r0,r1,easeIO(q));S.fpPitch=NET_LEAN*0.5*(1-q)+0.35*q;rig.pos.copy(headOn(S.fpRoot,S.fpPitch,-PI/2,0.95));rig.look.set(rig.pos.x-1.6,D+0.9,SL.netZ+dz);});
+  await tween(0.45,q=>{S.fpPitch=0.35*(1-q);rig.pos.copy(headOn(S.fpRoot,S.fpPitch,-PI/2,0.95+0.3*q));});
+  S.fpRoot=null;S.fpPitch=0;S.fpYaw=null;me.pose='idle';me.root.rotation.order='XYZ';rig.pos.set(r1.x,D+1.25,r1.z);}
+/* 慢動作重播：第三人稱從旁邊看小宇滑下來撞上正在往上爬的主角 */
+async function slideReplay(S,z1){const me=S.me,yu=S.yu,rec=REC;REC=null;const za=SL.top+0.05,zb=z1-0.72;
+  await fade(1,250);const sub=$('#sub'),subH=sub.classList.contains('hide');sub.classList.add('hide');const bd=document.createElement('div');bd.id='rp';bd.innerHTML='<b>●</b>慢動作重播';document.body.appendChild(bd);document.body.classList.add('replay');
+  me.root.visible=true;crawlOnSlide(me,z1,0);me.crawlF=2;me.snap=true;sitOnSlide(yu,za);yu.setMood('joy');yu.snap=true;
+  rig.fp=false;rig.roll=0;rig.shake=0;camCut(new V3(-3.8,1.45,z1+1.8),new V3(-1.85,1.05,z1-0.3));await fade(0,250);
+  await tween(1.9,q=>{const z=za+(zb-za)*easeI(q);sitOnSlide(yu,z);if(q>0.6)yu.setMood('surprised');crawlOnSlide(me,z1-0.06*q,0);});
+  flash('#ffffff',260);SFX.crack&&SFX.crack();me.setMood('hurt');
+  /* 被撞的主角保持手腳撐地的姿勢，往側邊（西邊）翻下滑道，側身落地 */
+  const p0=me.root.position.clone(),pit=me.root.rotation.x,p1=new V3(-2.35,0.22,z1+0.15);me.crawlF=0.001;
+  await tween(2.4,q=>{const e=easeIO(q),g=easeI(q);me.root.rotation.order='YXZ';me.root.position.set(p0.x+(p1.x-p0.x)*e,p0.y+(p1.y-p0.y)*g+0.12*Math.sin(q*PI),p0.z+(p1.z-p0.z)*e);
+    me.root.rotation.set(pit*(1-e),PI,-1.45*easeO(Math.min(1,q*1.15)));if(q<0.35)sitOnSlide(yu,zb+0.08*q/0.35);
+    });
+  SFX.thud&&SFX.thud();await wait(0.7);
+  await fade(1,250);me.root.rotation.order='XYZ';me.root.rotation.set(0,PI/2+0.4,0);me.pose='hurtArm';me.snap=true;bd.remove();if(!subH)sub.classList.remove('hide');document.body.classList.remove('replay');me.crawlF=null;REC=rec;}
 function sitOnSlide(c,z){c.root.rotation.order='YXZ';c.root.position.set(SL.x,slideY(z)+0.02,z);c.root.rotation.set(slidePitch(z),0,0);c.pose='slideSit';}
 /* 在滑道上往上爬（頭朝 -z） */
 function crawlOnSlide(c,z,dx=0){c.root.rotation.order='YXZ';c.root.position.set(SL.x+dx,slideY(z)+0.02,z);c.root.rotation.set(-slidePitch(z),PI,0);c.pose='crawl';}
@@ -2942,7 +2982,7 @@ CASES.slide={id:'slide',kind:'news',cmDanger:{pose:'crawl',t:'危險！',icon:'�
     await tween(0.55,q=>{const e=easeI(q);rig.pos.set(p0.x-1.25*q,p0.y+(0.25*Math.sin(q*PI))-(p0.y-0.45)*e,p0.z+0.15*q);rig.roll=-1.1*e;rig.look.set(rig.pos.x-1.2,0.1+0.6*(1-e),rig.pos.z+1.5);});
     SFX.thud();rig.shake=0.5;
     sitOnSlide(yu,zb);yu.pose='slideSit';
-    await wait(1.0);await fade(1,350);rig.roll=0;
+    await wait(1.0);await slideReplay(S,z1);rig.roll=0;
     /* 第三人稱：主角坐在滑道旁邊，抱著右手 */
     me.root.visible=true;me.root.rotation.order='XYZ';me.root.rotation.set(0,PI/2+0.4,0);me.root.position.set(-2.45,0,z1+0.2);me.pose='hurtArm';me.setMood('hurt');me.snap=true;
     k.root.rotation.order='XYZ';k.root.rotation.set(0,0,0);k.root.position.set(-0.3,0,z1+1.1);faceTo(k,-2.45,z1+0.2);k.pose='idle';k.setMood('surprised');k.snap=true;
@@ -2972,9 +3012,8 @@ CASES.slide={id:'slide',kind:'news',cmDanger:{pose:'crawl',t:'危險！',icon:'�
     await tween(1.4,q=>{sitOnSlide(yu,SL.top+0.05+(SL.bot-SL.top-0.1)*easeIO(q));});
     yu.root.rotation.order='XYZ';yu.root.rotation.set(0,0,0);yu.root.position.set(SL.x,0,SL.bot+0.75);yu.pose='idle';walkTo(yu,new V3(0.6,0,SL.bot+0.9),1.6,'walk');
     /* 主角爬攀爬網到平台，再走到塔台、坐下來滑 */
-    me.pose='climb';
-    await moveFP(new V3(2.55,1.6,-1.1),0.9,'walk',new V3(1.4,1.55,-1.1));
-    await tween(2.2,q=>{me.climbK=q*4;rig.pos.set(2.55-(2.55-1.55)*q,1.6+(D+1.25-1.6)*q,-1.1);rig.look.set(0.4,D+1.1,-1.1);});me.climbK=null;me.pose='idle';
+    await moveFP(new V3(SL.netX0+0.45,1.3,SL.netZ),0.8,'walk',new V3(1.4,1.2,SL.netZ));
+    await fpNetClimb(S,0,2.6);
     await moveFP(new V3(-0.2,D+1.25,-1.05),1.6,'walk',new V3(-1.3,D+1.1,-0.4));
     await moveFP(new V3(SL.x,D+1.25,-0.45),1.0,'walk',new V3(SL.x,0.6,2.6));
     /* 坐下來、腳朝下，看清楚下面沒人才滑 */
@@ -3004,9 +3043,9 @@ function slideRegretShot(S){const me=S.me,yu=S.yu,k=S.kai,z=SL.top+1.35;S.fpRoot
   k.root.rotation.order='XYZ';k.root.rotation.set(0,0,0);k.root.position.set(-1.55,0,z+2.35);faceTo(k,-2.45,z);k.pose='idle';k.setMood('surprised');k.root.visible=true;k.snap=true;
   camCut(new V3(-3.65,1.0,z+1.25),new V3(-2.45,0.68,z));}
 async function slideCut(S){const k=S.kai,me=S.me;S.fpBody=false;me.root.visible=false;
-  k.root.position.set(2.75,0.35,-0.75);faceTo(k,1.6,-0.8);k.pose='climb';k.groundOn=false;
+  netOn(k,0.22,0.35);k.groundOn=false;
   await moveFP(new V3(3.1,1.42,-1.25),0.6,'walk',new V3(k.root.position.x,1.2,k.root.position.z));
-  rig.shake=0.2;SFX.drive&&SFX.drive();await tween(0.6,q=>{k.root.position.x=2.75+0.12*Math.sin(q*PI*4);});
+  rig.shake=0.2;SFX.drive&&SFX.drive();const kx=k.root.position.x;await tween(0.6,q=>{k.root.position.x=kx+0.1*Math.sin(q*PI*4);});k.root.rotation.order='XYZ';k.root.rotation.set(0,-PI/2,0);
   impact();k.pose='fallBack';k.setMood('surprised');const p0=k.root.position.clone();
   await tween(0.5,q=>{const e=easeI(q);k.root.position.set(p0.x+0.6*q,p0.y*(1-e),p0.z+0.2*q);rig.look.lerp(_tp.set(k.root.position.x,0.6,k.root.position.z),0.3);});
   SFX.thud();k.groundOn=undefined;k.pose='hurtLeg';k.setMood('hurt');k.root.position.set(3.45,0,-0.55);k.snap=true;rig.shake=0.35;
@@ -3077,7 +3116,7 @@ function loop(now){requestAnimationFrame(loop);const rdt=Math.min(0.05,(now-last
   camera.updateMatrixWorld();updateOverlay(dt);
   if(REC&&tw.length&&S&&!S.noRec)REC.push(snapState(S));
   const so=$('#story').classList.contains('on'),sk=so+':'+innerWidth+'x'+innerHeight;if(sk!==loop._so){loop._so=sk;if(so)camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*0.13,innerWidth,innerHeight);else camera.clearViewOffset();}
-  renderer.clear();renderer.render(curScene,camera);renderer.clearDepth();renderer.render(ov,camera);cmRender(rdt);}
+  renderer.clear();renderer.render(curScene,camera);renderer.clearDepth();renderer.render(ov,camera);cmRender(rdt);shaderGuard();}
 requestAnimationFrame(loop);
 
 /* title & controls */
@@ -3125,7 +3164,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
 GAME.dbg=()=>({THREE,navBuild,navPath,navHit,walkPath,COL,CHAR,stairGait,stairWalk,armIK,ballAnchor,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
-window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={COL,separateBodies,scatterBooks,makeBooks,CR,bonePos,impact:()=>0,slideRegretShot,sitOnSlide,crawlOnSlide,wearSling,PLAY,NURSE,SL,loadEnv,slideProfile,setCur:sc=>{curScene=sc;},obstAt,planPath,groundAudit,getS:()=>S,TS:()=>TS,CMf:()=>CM.frozen,raceTeacherCorner,raceCorner,tw,campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
+window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={netOn,fpNetClimb,slideReplay,COL,separateBodies,scatterBooks,makeBooks,CR,bonePos,impact:()=>0,slideRegretShot,sitOnSlide,crawlOnSlide,wearSling,PLAY,NURSE,SL,loadEnv,slideProfile,setCur:sc=>{curScene=sc;},obstAt,planPath,groundAudit,getS:()=>S,TS:()=>TS,CMf:()=>CM.frozen,raceTeacherCorner,raceCorner,tw,campusFloor,campusBlocked,ward:()=>wardScene(),headWrap:c=>headWrap(c),setScene:sc=>{curScene=sc;},cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
 
 </script>

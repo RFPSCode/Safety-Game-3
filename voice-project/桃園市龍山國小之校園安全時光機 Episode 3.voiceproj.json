@@ -4,58 +4,133 @@
  "id": "campus-safety-time-machine-ep3",
  "title": "校園安全時光機 Episode 3",
  "description": "校園安全教育 3D 冒險遊戲第三集的全部台詞（第一關悠悅樓平台：互推比力氣；第二關遊樂器材區：溜滑梯逆向爬；第三關一樓教室走廊：走廊競速推人）。",
- "updated": "2026-11-26T20:00:00+08:00",
+ "updated": "2026-11-28T10:00:00+08:00",
  "engine": {
   "model": "qwen3-tts-customvoice",
   "language": "chinese",
-  "temperature": 0.8
+  "temperature": 0.7,
+  "seed": -1,
+  "taiwan": true,
+  "clean": true
  },
- "instruct": "用台灣口音的國語說話，咬字清楚自然",
- "pronunciation": [],
+ "instruct": "用台灣口音的國語說話：不捲舌、不加兒化音，語尾自然，咬字清楚",
+ "pronunciation": [
+  {
+   "from": "揹",
+   "zhuyin": "ㄅㄟ"
+  },
+  {
+   "from": "著",
+   "zhuyin": "˙ㄓㄜ"
+  },
+  {
+   "from": "還",
+   "zhuyin": "ㄏㄞˊ"
+  },
+  {
+   "from": "倒轉",
+   "zhuyin": "ㄉㄠˋ ㄓㄨㄢˇ"
+  },
+  {
+   "from": "轉角",
+   "zhuyin": "ㄓㄨㄢˇ ㄐㄧㄠˇ"
+  },
+  {
+   "from": "三角巾",
+   "zhuyin": "ㄙㄢ ㄐㄧㄠˇ ㄐㄧㄣ"
+  },
+  {
+   "from": "散了",
+   "zhuyin": "ㄙㄢˋ ˙ㄌㄜ"
+  },
+  {
+   "from": "幹嘛",
+   "zhuyin": "ㄍㄢˋ ㄇㄚˊ"
+  },
+  {
+   "from": "嚇",
+   "zhuyin": "ㄒㄧㄚˋ"
+  },
+  {
+   "from": "家長",
+   "zhuyin": "ㄐㄧㄚ ㄓㄤˇ"
+  },
+  {
+   "from": "流血",
+   "zhuyin": "ㄌㄧㄡˊ ㄒㄧㄝˇ"
+  },
+  {
+   "from": "出血",
+   "zhuyin": "ㄔㄨ ㄒㄧㄝˇ"
+  },
+  {
+   "from": "便當",
+   "zhuyin": "ㄅㄧㄢˋ ㄉㄤ"
+  },
+  {
+   "from": "相撲",
+   "zhuyin": "ㄒㄧㄤ ㄆㄨ"
+  },
+  {
+   "from": "半空中",
+   "zhuyin": "ㄅㄢˋ ㄎㄨㄥ ㄓㄨㄥ"
+  },
+  {
+   "from": "踩空",
+   "zhuyin": "ㄘㄞˇ ㄎㄨㄥ"
+  },
+  {
+   "from": "骨折",
+   "zhuyin": "ㄍㄨˇ ㄓㄜˊ"
+  },
+  {
+   "from": "頭骨",
+   "zhuyin": "ㄊㄡˊ ㄍㄨˇ"
+  },
+  {
+   "from": "當下",
+   "zhuyin": "ㄉㄤ ㄒㄧㄚˋ"
+  },
+  {
+   "from": "應該",
+   "zhuyin": "ㄧㄥ ㄍㄞ"
+  },
+  {
+   "from": "衝",
+   "zhuyin": "ㄔㄨㄥ"
+  }
+ ],
  "roles": [
   {
    "id": "nar",
    "name": "旁白",
    "speaker": "uncle_fu",
-   "instruct": "說故事的語氣",
+   "instruct": "像在給小學生說故事，沉穩、有畫面感",
+   "seed": 1101,
    "post": {
     "enabled": true,
-    "preset": "一般男聲",
+    "preset": "渾厚男聲",
     "pitchHz": 0,
     "pitchLock": 0.6,
-    "formant": 1.0
+    "formant": 0.95,
+    "bassDb": 2,
+    "trebleDb": 0,
+    "speed": 0.97
    }
   },
   {
    "id": "teacher",
    "name": "王老師",
    "speaker": "serena",
-   "instruct": "",
+   "instruct": "國小老師的說話方式，親切、清楚",
+   "seed": 1202,
    "post": {
     "enabled": true,
     "preset": "一般女聲",
     "pitchHz": 0,
-    "pitchLock": 0.6,
-    "formant": 1.0
-   }
-  },
-  {
-   "id": "devil",
-   "name": "小惡魔",
-   "speaker": "ryan",
-   "instruct": "",
-   "post": {
-    "enabled": true,
-    "preset": "惡魔",
-    "pitchHz": 0,
-    "pitchLock": 0.6,
-    "formant": 0.9,
-    "octDown": 0.2,
-    "growl": 0.12,
-    "bassDb": 2,
-    "echoMs": 100,
-    "echoFeedback": 0.25,
-    "echoMix": 0.2
+    "pitchLock": 0.65,
+    "formant": 1.0,
+    "speed": 1.0
    }
   },
   {
@@ -63,15 +138,38 @@
    "name": "小天使",
    "speaker": "serena",
    "instruct": "",
+   "seed": 1303,
    "post": {
     "enabled": true,
     "preset": "天使",
+    "pitchHz": 285,
+    "pitchLock": 0.6,
+    "formant": 1.12,
+    "octUp": 0.2,
+    "trebleDb": 3,
+    "reverb": 0.4,
+    "speed": 0.97
+   }
+  },
+  {
+   "id": "devil",
+   "name": "小惡魔",
+   "speaker": "ryan",
+   "instruct": "",
+   "seed": 1404,
+   "post": {
+    "enabled": true,
+    "preset": "惡魔",
     "pitchHz": 0,
     "pitchLock": 0.6,
-    "formant": 1.08,
-    "octUp": 0.18,
-    "trebleDb": 3,
-    "reverb": 0.35
+    "formant": 0.88,
+    "octDown": 0.25,
+    "growl": 0.15,
+    "bassDb": 3,
+    "echoMs": 110,
+    "echoFeedback": 0.25,
+    "echoMix": 0.2,
+    "speed": 1.02
    }
   },
   {
@@ -79,42 +177,15 @@
    "name": "主角男生(五年級)",
    "speaker": "aiden",
    "instruct": "",
+   "seed": 1505,
    "post": {
     "enabled": true,
-    "preset": "自訂",
-    "pitchHz": 255,
-    "pitchLock": 0.6,
-    "formant": 1.15,
-    "trebleDb": 1
-   }
-  },
-  {
-   "id": "me_g",
-   "name": "主角女生(五年級)",
-   "speaker": "vivian",
-   "instruct": "",
-   "post": {
-    "enabled": true,
-    "preset": "自訂",
-    "pitchHz": 275,
-    "pitchLock": 0.6,
+    "preset": "男童",
+    "pitchHz": 230,
+    "pitchLock": 0.7,
     "formant": 1.16,
-    "trebleDb": 1
-   }
-  },
-  {
-   "id": "xiaomei",
-   "name": "小美(二年級)",
-   "speaker": "vivian",
-   "instruct": "",
-   "post": {
-    "enabled": true,
-    "preset": "自訂",
-    "pitchHz": 310,
-    "pitchLock": 0.6,
-    "formant": 1.2,
-    "speed": 1.03,
-    "trebleDb": 2
+    "trebleDb": 1,
+    "speed": 1.0
    }
   },
   {
@@ -122,27 +193,63 @@
    "name": "小凱(五年級)",
    "speaker": "aiden",
    "instruct": "",
+   "seed": 1606,
    "post": {
     "enabled": true,
-    "preset": "自訂",
-    "pitchHz": 240,
-    "pitchLock": 0.6,
-    "formant": 1.13,
-    "trebleDb": 1
+    "preset": "男童",
+    "pitchHz": 195,
+    "pitchLock": 0.7,
+    "formant": 1.07,
+    "trebleDb": -1,
+    "speed": 1.08
    }
   },
   {
    "id": "xiaoyu",
-   "name": "小宇",
-   "speaker": "aiden",
+   "name": "小宇(二年級)",
+   "speaker": "vivian",
    "instruct": "",
+   "seed": 1707,
    "post": {
     "enabled": true,
-    "preset": "自訂",
+    "preset": "男童",
     "pitchHz": 290,
-    "pitchLock": 0.6,
-    "formant": 1.22,
-    "trebleDb": 1
+    "pitchLock": 0.7,
+    "formant": 1.18,
+    "trebleDb": 0,
+    "speed": 0.95
+   }
+  },
+  {
+   "id": "me_g",
+   "name": "主角女生(五年級)",
+   "speaker": "vivian",
+   "instruct": "",
+   "seed": 1808,
+   "post": {
+    "enabled": true,
+    "preset": "女童",
+    "pitchHz": 255,
+    "pitchLock": 0.7,
+    "formant": 1.12,
+    "trebleDb": 1,
+    "speed": 1.0
+   }
+  },
+  {
+   "id": "xiaomei",
+   "name": "小美(二年級)",
+   "speaker": "vivian",
+   "instruct": "",
+   "seed": 1909,
+   "post": {
+    "enabled": true,
+    "preset": "女童",
+    "pitchHz": 330,
+    "pitchLock": 0.7,
+    "formant": 1.24,
+    "trebleDb": 2,
+    "speed": 1.04
    }
   }
  ],
@@ -151,769 +258,772 @@
    "id": "002",
    "role": "nar",
    "text": "下課時間，你在悠悅樓的平台上休息，小美跑了過來。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "輕鬆地開場"
   },
   {
    "id": "003",
    "role": "xiaomei",
    "text": "我們來比力氣！我最近每天幫媽媽搬東西，力氣超大！",
-   "instruct": "活潑的小女孩語氣"
+   "instruct": "興奮又得意，想找人比賽"
   },
   {
    "id": "004",
    "role": "me_b",
    "text": "比力氣？怎麼比？",
-   "instruct": "小學生自然的語氣"
+   "instruct": "好奇地問"
   },
   {
    "id": "005",
    "role": "me_g",
    "text": "比力氣？怎麼比？",
-   "instruct": "小學生自然的語氣"
+   "instruct": "好奇地問"
   },
   {
    "id": "006",
    "role": "xiaomei",
    "text": "像相撲一樣！蹲低一點，手掌對手掌互推，腳先離開原地的人就輸了！",
-   "instruct": "活潑的小女孩語氣"
+   "instruct": "興高采烈地解釋玩法"
   },
   {
    "id": "007",
    "role": "devil",
    "text": "比就比！推贏她，讓大家看看你有多厲害！",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "壓低聲音，狡猾地慫恿"
   },
   {
    "id": "008",
    "role": "nar",
    "text": "你們面對面蹲低身體，手掌貼著手掌。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "放慢，帶點緊張感"
   },
   {
    "id": "009",
    "role": "devil",
    "text": "蹲下去，手掌貼上去，用力推！",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "低聲催促，越說越急"
   },
   {
    "id": "010",
    "role": "xiaomei",
    "text": "我要贏了！你快被推出去了！",
-   "instruct": "活潑的小女孩語氣"
+   "instruct": "用力撐著，得意地喊"
   },
   {
    "id": "011",
    "role": "nar",
    "text": "小美越推越用力，你的腳往後滑了一步。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "緊張起來，語速稍快"
   },
   {
    "id": "012",
    "role": "devil",
    "text": "你要輸了！突然用力推一下，她馬上就輸了！",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "急促地慫恿，帶著壞笑"
   },
   {
    "id": "013",
    "role": "xiaomei",
    "text": "好痛……我的頭……",
-   "instruct": "痛苦、虛弱地說"
+   "instruct": "痛得聲音發抖，很虛弱"
   },
   {
    "id": "014",
    "role": "me_b",
    "text": "對不起！你還好嗎？我去叫老師！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "嚇壞了，慌張又著急"
   },
   {
    "id": "015",
    "role": "me_g",
    "text": "對不起！你還好嗎？我去叫老師！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "嚇壞了，慌張又著急"
   },
   {
    "id": "016",
    "role": "devil",
    "text": "不要去！她又沒流血，告訴老師你就會被罵。",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "小聲地威脅，故意嚇人"
   },
   {
    "id": "017",
    "role": "xiaomei",
    "text": "……好像沒那麼痛了。不要告訴老師好不好？",
-   "instruct": "活潑的小女孩語氣"
+   "instruct": "忍著痛，小聲地拜託"
   },
   {
    "id": "018",
    "role": "me_b",
    "text": "……好吧。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "猶豫很久，心虛地小聲答應"
   },
   {
    "id": "019",
    "role": "me_g",
    "text": "……好吧。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "猶豫很久，心虛地小聲答應"
   },
   {
    "id": "020",
    "role": "teacher",
    "text": "小美，先不要動！老師馬上叫救護車，也通知你的家長。",
-   "instruct": "溫和關心的語氣"
+   "instruct": "緊急但冷靜，溫柔地安撫"
   },
   {
    "id": "021",
    "role": "nar",
    "text": "救護車很快就到了，把小美送到醫院檢查。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "沉重，放慢"
   },
   {
    "id": "022",
    "role": "me_b",
    "text": "我以為她沒事了……那時候，我應該馬上告訴老師的……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "後悔得快哭出來，聲音發抖"
   },
   {
    "id": "023",
    "role": "me_g",
    "text": "我以為她沒事了……那時候，我應該馬上告訴老師的……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "後悔得快哭出來，聲音發抖"
   },
   {
    "id": "024",
    "role": "devil",
    "text": "是她自己說不要告訴老師的，不關你的事。",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "輕描淡寫地推卸責任"
   },
   {
    "id": "025",
    "role": "angel",
    "text": "手掌互推、拉手比力氣，只要有人突然用力或鬆手，另一個人就會往後倒，頭撞到地上。",
-   "instruct": "溫柔堅定的語氣"
+   "instruct": "認真地提醒，語氣溫柔"
   },
   {
    "id": "026",
    "role": "angel",
    "text": "頭撞到了，就算當下不痛，也要馬上告訴大人。我讓時間倒轉，回到小美來找你比力氣的時候，這一次，請你自己選。",
-   "instruct": "溫柔堅定的語氣"
+   "instruct": "溫柔而有力量，給人勇氣"
   },
   {
    "id": "027",
    "role": "xiaomei",
    "text": "我們來比力氣！像相撲一樣，手掌對手掌互推！",
-   "instruct": "活潑的小女孩語氣"
+   "instruct": "興奮又得意，想找人比賽"
   },
   {
    "id": "028",
    "role": "angel",
    "text": "這一次，你可以自己選。想一想，怎麼玩才安全？",
-   "instruct": "溫柔堅定的語氣"
+   "instruct": "溫柔地鼓勵，慢慢地說"
   },
   {
    "id": "029",
    "role": "nar",
    "text": "你們手掌對手掌互推，推著推著，你忍不住突然用力一推。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "惋惜地說，語氣沉重，放慢"
   },
   {
    "id": "030",
    "role": "nar",
    "text": "你們拉著手往後拉，你一鬆手，小美整個人往後倒了下去。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "惋惜地說，語氣沉重，放慢"
   },
   {
    "id": "031",
    "role": "nar",
    "text": "一開始輕輕的，可是推著推著越來越用力，小美一個沒站穩，往後倒了下去。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "惋惜地說，語氣沉重，放慢"
   },
   {
    "id": "032",
    "role": "xiaomei",
    "text": "好啊！剪刀、石頭、布！我出石頭！",
-   "instruct": "活潑的小女孩語氣"
+   "instruct": "開心地喊口令"
   },
   {
    "id": "033",
    "role": "me_b",
    "text": "我出布，我贏了！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "開心得意"
   },
   {
    "id": "034",
    "role": "me_g",
    "text": "我出布，我贏了！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "開心得意"
   },
   {
    "id": "035",
    "role": "teacher",
    "text": "你們改玩猜拳，很好喔。手掌互推、拉手比力氣，只要一鬆手，就會往後倒。",
-   "instruct": "溫和關心的語氣"
+   "instruct": "欣慰地稱讚，再認真提醒"
   },
   {
    "id": "036",
    "role": "teacher",
    "text": "如果頭撞到了，就算不痛，也一定要告訴老師，回家也要告訴家人。",
-   "instruct": "溫和關心的語氣"
+   "instruct": "認真叮嚀，語氣溫柔"
   },
   {
    "id": "037",
    "role": "xiaomei",
    "text": "知道了！我們再來一次，剪刀、石頭、布！",
-   "instruct": "活潑的小女孩語氣"
+   "instruct": "開心地喊口令"
   },
   {
    "id": "038",
    "role": "nar",
    "text": "那天晚上，小美的頭越來越痛，一直吐，被救護車送到醫院。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "沉重，放慢",
+   "say": "那天晚上，小美的頭越來越痛，一直吐{ㄊㄨˋ}，被救護車送到醫院。"
   },
   {
    "id": "039",
    "role": "teacher",
    "text": "醫生說，小美的腦裡面在出血，昨天晚上緊急開刀了。",
-   "instruct": "溫和關心的語氣"
+   "instruct": "難過、沉重，盡量保持冷靜"
   },
   {
    "id": "040",
    "role": "me_b",
    "text": "怎麼會……那天她說已經不痛了……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "不敢相信，聲音哽咽"
   },
   {
    "id": "041",
    "role": "me_g",
    "text": "怎麼會……那天她說已經不痛了……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "不敢相信，聲音哽咽"
   },
   {
    "id": "042",
    "role": "teacher",
    "text": "頭撞到地面的傷，有時候過了好幾天才會出現。",
-   "instruct": "溫和關心的語氣"
+   "instruct": "語重心長"
   },
   {
    "id": "043",
    "role": "nar",
    "text": "小美的生命救回來了，可是她的右眼，只看得到一半的世界。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "很沉重，最後一句放慢"
   },
   {
    "id": "044",
    "role": "angel",
    "text": "小惡魔，不准你再騙人了！",
-   "instruct": "溫柔堅定的語氣"
+   "instruct": "堅定有力地大聲說"
   },
   {
    "id": "045",
    "role": "devil",
    "text": "哇啊！好刺眼……我還會再回來的！",
-   "instruct": "驚慌地大叫"
+   "instruct": "驚慌失措地大叫，邊說邊逃"
   },
   {
    "id": "046",
    "role": "angel",
    "text": "嗚……對不起，這一次我沒能保護大家……",
-   "instruct": "難過地哭著說"
+   "instruct": "難過地哭著說",
+   "say": "對不起，這一次我沒能保護大家……"
   },
   {
    "id": "047",
    "role": "devil",
    "text": "你又被我騙了！走廊上推一下，小凱的頭骨就裂了，還要賠十二萬四千元！",
-   "instruct": "得意地大笑、嘲諷"
+   "instruct": "得意洋洋地嘲笑"
   },
   {
    "id": "048",
    "role": "nar",
    "text": "放學了，你和小凱揹著書包走出教室，來到一樓走廊。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "輕鬆地開場"
   },
   {
    "id": "049",
    "role": "xiaokai",
    "text": "我們來比賽！看誰先跑到走廊轉角，輸的人幫對方揹便當盒！",
-   "instruct": "活潑好勝的小男孩語氣"
+   "instruct": "興奮好勝，想比賽"
   },
   {
    "id": "050",
    "role": "me_b",
    "text": "好啊，預備——",
-   "instruct": "小學生自然的語氣"
+   "instruct": "躍躍欲試"
   },
   {
    "id": "051",
    "role": "me_g",
    "text": "好啊，預備——",
-   "instruct": "小學生自然的語氣"
+   "instruct": "躍躍欲試"
   },
   {
    "id": "052",
    "role": "xiaokai",
    "text": "起跑！",
-   "instruct": "活潑好勝的小男孩語氣"
+   "instruct": "大聲地喊"
   },
   {
    "id": "053",
    "role": "devil",
    "text": "衝啊！走廊又沒什麼人，跑快一點！",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "興奮地慫恿"
   },
   {
    "id": "054",
    "role": "nar",
    "text": "你們在走廊上狂奔，小凱領先你半個身體。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "緊張起來，語速稍快"
   },
   {
    "id": "055",
    "role": "devil",
    "text": "跑快一點！不要輸給他！",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "急促地催促"
   },
   {
    "id": "056",
    "role": "xiaokai",
    "text": "我要贏了！便當盒你揹定了！",
-   "instruct": "活潑好勝的小男孩語氣"
+   "instruct": "邊跑邊得意地喊"
   },
   {
    "id": "057",
    "role": "devil",
    "text": "你要輸了！伸手推他一下，他慢下來你就贏了！反正只是玩玩而已！",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "急促地慫恿，帶著壞笑"
   },
   {
    "id": "058",
    "role": "nar",
    "text": "小凱整個人往前撲倒，書包裡的課本掉了一地。他趴在地上一動也不動，你的手還停在半空中。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "沉重，放慢，最後一句很輕"
   },
   {
    "id": "059",
    "role": "me_b",
    "text": "小凱？小凱！你不要嚇我！",
-   "instruct": "驚慌地大喊"
+   "instruct": "嚇壞了，驚慌地大喊，快哭出來"
   },
   {
    "id": "060",
    "role": "me_g",
    "text": "小凱？小凱！你不要嚇我！",
-   "instruct": "驚慌地大喊"
+   "instruct": "嚇壞了，驚慌地大喊，快哭出來"
   },
   {
    "id": "061",
    "role": "teacher",
    "text": "不要動他！你快去健康中心叫人，老師打一一九！",
-   "instruct": "溫和關心的語氣"
+   "instruct": "緊急但冷靜，清楚地下指令"
   },
   {
    "id": "062",
    "role": "nar",
    "text": "救護車很快就趕到了，把小凱送到醫院。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "沉重，放慢"
   },
   {
    "id": "063",
    "role": "teacher",
    "text": "不要動他！老師馬上打一一九！",
-   "instruct": "溫和關心的語氣"
+   "instruct": "緊急但冷靜，清楚地下指令"
   },
   {
    "id": "064",
    "role": "nar",
    "text": "救護車很快就到了，把小凱送到醫院。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "沉重，放慢"
   },
   {
    "id": "065",
    "role": "me_b",
    "text": "如果那時候，我沒有伸手就好了……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "後悔得快哭出來，聲音發抖"
   },
   {
    "id": "066",
    "role": "me_g",
    "text": "如果那時候，我沒有伸手就好了……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "後悔得快哭出來，聲音發抖"
   },
   {
    "id": "067",
    "role": "devil",
    "text": "是他自己說要比賽的，又不是你一個人的錯。",
-   "instruct": "狡猾、慫恿的語氣"
+   "instruct": "輕描淡寫地推卸責任"
   },
   {
    "id": "068",
    "role": "angel",
    "text": "走廊不是賽跑場，轉角也看不到對面的人。伸手推人，可能害朋友一輩子受傷。",
-   "instruct": "溫柔堅定的語氣"
+   "instruct": "認真地提醒，語氣溫柔"
   },
   {
    "id": "069",
    "role": "angel",
    "text": "我讓時間倒轉，回到小凱說要比賽的時候。這一次，請你自己選。",
-   "instruct": "溫柔堅定的語氣"
+   "instruct": "溫柔而有力量，給人勇氣"
   },
   {
    "id": "070",
    "role": "angel",
    "text": "這一次，你可以自己選。想一想，在走廊上該怎麼做？",
-   "instruct": "溫柔堅定的語氣"
+   "instruct": "溫柔地鼓勵，慢慢地說"
   },
   {
    "id": "071",
    "role": "nar",
    "text": "你們在走廊上狂奔，快要輸的時候，你忍不住伸手推了小凱一下。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "低沉惋惜"
   },
   {
    "id": "072",
    "role": "devil",
    "text": "你又被我騙了！你沒有勸小凱別跑，他在轉角撞倒了小美！",
-   "instruct": "得意地大笑、嘲諷"
+   "instruct": "得意洋洋地嘲笑"
   },
   {
    "id": "073",
    "role": "nar",
    "text": "小凱一個人衝了出去，在轉角撞上抱著作業簿走過來的小美。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "緊張，語速稍快"
   },
   {
    "id": "074",
    "role": "xiaomei",
    "text": "好痛！我的作業簿……",
-   "instruct": "痛苦地說"
+   "instruct": "痛得叫出來，然後很難過"
   },
   {
    "id": "075",
    "role": "xiaokai",
    "text": "對不起！我沒看到你從轉角走過來……",
-   "instruct": "活潑好勝的小男孩語氣"
+   "instruct": "嚇到了，很愧疚地道歉"
   },
   {
    "id": "076",
    "role": "teacher",
    "text": "小美，手先不要動，老師帶你去健康中心。",
-   "instruct": "溫和關心的語氣"
+   "instruct": "溫柔地安撫"
   },
   {
    "id": "077",
    "role": "nar",
    "text": "小美的手腕扭傷了，作業簿也散了一地。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "惋惜，放慢"
   },
   {
    "id": "078",
    "role": "devil",
    "text": "你又被我騙了！快走也停不下來，轉角一撞，小美就受傷了！",
-   "instruct": "得意地大笑、嘲諷"
+   "instruct": "得意洋洋地嘲笑"
   },
   {
    "id": "079",
    "role": "nar",
    "text": "你們越走越快，小凱在轉角撞上了抱著作業簿走過來的小美。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "緊張，語速稍快"
   },
   {
    "id": "080",
    "role": "xiaokai",
    "text": "對不起！我走太快，停不下來……",
-   "instruct": "活潑好勝的小男孩語氣"
+   "instruct": "很愧疚，懊惱地道歉"
   },
   {
    "id": "081",
    "role": "xiaokai",
    "text": "好啦，那體育課再比！反正我一定贏。",
-   "instruct": "活潑好勝的小男孩語氣"
+   "instruct": "有點不服氣，又很有自信"
   },
   {
    "id": "082",
    "role": "xiaomei",
    "text": "幸好你們沒有用跑的，不然我一定被撞倒。",
-   "instruct": "活潑的小女孩語氣"
+   "instruct": "鬆一口氣，開心地說"
   },
   {
    "id": "083",
    "role": "teacher",
    "text": "走廊不是賽跑場。轉角看不到對面的人，跑太快就停不下來。你們今天做得很好。",
-   "instruct": "溫和關心的語氣"
+   "instruct": "欣慰地稱讚，再認真提醒"
   },
   {
    "id": "084",
    "role": "xiaokai",
    "text": "體育課見！這次我們在操場好好比一場！",
-   "instruct": "活潑好勝的小男孩語氣"
+   "instruct": "開心地約定"
   },
   {
    "id": "085",
    "role": "nar",
    "text": "小凱的頭骨裂了，腦裡面也在出血。臉的一邊動不太起來，一邊的耳朵也聽不清楚了。",
-   "instruct": "平穩的說故事語氣，清楚自然"
+   "instruct": "很沉重，一句一句慢慢說"
   },
   {
    "id": "086",
    "role": "teacher",
    "text": "監視器拍得很清楚，是伸手推人。這不是玩玩而已了。",
-   "instruct": "溫和關心的語氣"
+   "instruct": "嚴肅、沉重"
   },
   {
    "id": "087",
    "role": "me_b",
    "text": "我只是想贏……我不知道會這樣……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "後悔得哭出來，聲音發抖"
   },
   {
    "id": "088",
    "role": "me_g",
    "text": "我只是想贏……我不知道會這樣……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "後悔得哭出來，聲音發抖"
   },
   {
    "id": "089",
    "role": "devil",
    "text": "你又被我騙了！小美往後倒，後腦撞到地上。頭撞到的傷，有時候過了好幾天才會出事！",
-   "instruct": ""
+   "instruct": "得意洋洋地嘲笑"
   },
   {
    "id": "090",
    "role": "devil",
    "text": "你又被我騙了！從滑道往上爬，手都摔斷了！現在大家都不敢玩溜滑梯了！",
-   "instruct": ""
+   "instruct": "得意洋洋地嘲笑"
   },
   {
    "id": "091",
    "role": "nar",
    "text": "下課了，你和小凱在遊樂器材區，排隊等著爬攀爬網上溜滑梯。小宇已經在上面的平台了。",
-   "instruct": ""
+   "instruct": "輕鬆地開場"
   },
   {
    "id": "092",
    "role": "xiaokai",
    "text": "排隊好慢喔。你不是說你手腳最快？我才不信。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "不耐煩，故意挑釁"
   },
   {
    "id": "093",
    "role": "me_b",
    "text": "誰說的？我可以證明給你看。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "不服氣，想證明自己"
   },
   {
    "id": "094",
    "role": "me_g",
    "text": "誰說的？我可以證明給你看。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "不服氣，想證明自己"
   },
   {
    "id": "095",
    "role": "devil",
    "text": "幹嘛排隊爬網子？直接從滑道爬上去！又快又帥，證明給小凱看！",
-   "instruct": ""
+   "instruct": "壓低聲音，狡猾地慫恿"
   },
   {
    "id": "096",
    "role": "nar",
    "text": "溜滑梯的滑道就在旁邊，從下面看，好像很快就能爬到頂。",
-   "instruct": ""
+   "instruct": "帶點誘惑感，放慢"
   },
   {
    "id": "097",
    "role": "devil",
    "text": "走啊！去滑道下面，從那裡爬上去！",
-   "instruct": ""
+   "instruct": "興奮地催促"
   },
   {
    "id": "098",
    "role": "me_b",
    "text": "看好了，我從這裡爬上去最快！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "得意、逞強"
   },
   {
    "id": "099",
    "role": "me_g",
    "text": "看好了，我從這裡爬上去最快！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "得意、逞強"
   },
   {
    "id": "100",
    "role": "xiaokai",
    "text": "等我！我也要爬！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "興奮地追上來"
   },
   {
    "id": "101",
    "role": "devil",
    "text": "快爬！趁上面的人還沒滑下來！",
-   "instruct": ""
+   "instruct": "急促地慫恿，帶著壞笑"
   },
   {
    "id": "102",
    "role": "me_b",
    "text": "啊——我的手！好痛！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "痛得大叫，哭出來"
   },
   {
    "id": "103",
    "role": "me_g",
    "text": "啊——我的手！好痛！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "痛得大叫，哭出來"
   },
   {
    "id": "104",
    "role": "xiaokai",
    "text": "你的手彎得好怪！老師！王老師！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "嚇壞了，大聲求救"
   },
   {
    "id": "105",
    "role": "teacher",
    "text": "手先不要動！老師先帶你去保健室。",
-   "instruct": ""
+   "instruct": "緊急但冷靜，溫柔地安撫"
   },
   {
    "id": "106",
    "role": "teacher",
    "text": "手先不要動！老師先帶你去保健室，也通知你的家人。",
-   "instruct": ""
+   "instruct": "緊急但冷靜，溫柔地安撫"
   },
   {
    "id": "107",
    "role": "me_b",
    "text": "我只是想證明我手腳很快……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "後悔得快哭出來，聲音發抖"
   },
   {
    "id": "108",
    "role": "me_g",
    "text": "我只是想證明我手腳很快……",
-   "instruct": "小學生自然的語氣"
+   "instruct": "後悔得快哭出來，聲音發抖"
   },
   {
    "id": "109",
    "role": "devil",
    "text": "是小宇自己不看下面就滑下來，又不是你的錯。",
-   "instruct": ""
+   "instruct": "輕描淡寫地推卸責任"
   },
   {
    "id": "110",
    "role": "angel",
    "text": "溜滑梯是從上面滑下來的，從滑道往上爬，就會和滑下來的人撞在一起。",
-   "instruct": ""
+   "instruct": "認真地提醒，語氣溫柔"
   },
   {
    "id": "111",
    "role": "angel",
    "text": "我讓時間倒轉，回到你想爬滑道的那一刻。這一次，請你自己選。",
-   "instruct": ""
+   "instruct": "溫柔而有力量，給人勇氣"
   },
   {
    "id": "112",
    "role": "xiaokai",
    "text": "你不是說你手腳最快？我才不信。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "不耐煩，故意挑釁"
   },
   {
    "id": "113",
    "role": "angel",
    "text": "這一次，你可以自己選。想一想，要怎麼上溜滑梯才安全？",
-   "instruct": ""
+   "instruct": "溫柔地鼓勵，慢慢地說"
   },
   {
    "id": "114",
    "role": "nar",
    "text": "你衝到滑道下面，手腳並用往上爬。上面的小宇沒看到你，坐下來就滑了下來。",
-   "instruct": ""
+   "instruct": "緊張，語速稍快"
   },
   {
    "id": "115",
    "role": "devil",
    "text": "你又被我騙了！在攀爬網上推來推去，小凱就摔下來了！",
-   "instruct": ""
+   "instruct": "得意洋洋地嘲笑"
   },
   {
    "id": "116",
    "role": "nar",
    "text": "你從前面插隊，和小凱在攀爬網上你推我擠。",
-   "instruct": ""
+   "instruct": "緊張，語速稍快"
   },
   {
    "id": "117",
    "role": "xiaokai",
    "text": "哇啊——",
-   "instruct": "小學生自然的語氣"
+   "instruct": "失去平衡，驚慌地大叫"
   },
   {
    "id": "118",
    "role": "nar",
    "text": "小凱一腳踩空，從攀爬網上摔了下來。",
-   "instruct": ""
+   "instruct": "沉重，放慢"
   },
   {
    "id": "119",
    "role": "teacher",
    "text": "在遊具上推擠，也會摔下來。小凱，腳先不要動，老師看一下。",
-   "instruct": ""
+   "instruct": "嚴肅但關心"
   },
   {
    "id": "120",
    "role": "xiaokai",
    "text": "好啦，那就排隊。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "有點不甘願，但接受了"
   },
   {
    "id": "121",
    "role": "xiaoyu",
    "text": "剛剛我都沒看下面，幸好你們沒有從滑道爬上來。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "鬆一口氣，有點不好意思"
   },
   {
    "id": "122",
    "role": "xiaokai",
    "text": "好吧，下次體育課我們比跑步！",
-   "instruct": "小學生自然的語氣"
+   "instruct": "開心地約定"
   },
   {
    "id": "123",
    "role": "teacher",
    "text": "溜滑梯的規則是：從攀爬網上、從滑道下、坐著滑，前面的人離開才滑。你們今天全部做到了。",
-   "instruct": ""
+   "instruct": "欣慰地稱讚，清楚地說規則"
   },
   {
    "id": "124",
    "role": "teacher",
    "text": "手先不要動，老師用固定板把它固定好。已經通知你的家人，等一下要去醫院照 X 光。",
-   "instruct": ""
+   "instruct": "溫柔地安撫，慢慢地說",
+   "say": "手先不要動，老師用固定板把它固定好。已經通知你的家人，等一下要去醫院照X光。"
   },
   {
    "id": "125",
    "role": "nar",
    "text": "你的右手骨折了，手臂用固定板和三角巾包著，痛得說不出話。",
-   "instruct": ""
+   "instruct": "沉重，放慢"
   },
   {
    "id": "126",
    "role": "nar",
    "text": "隔天下課，遊戲場很安靜，溜滑梯旁邊一個人都沒有。",
-   "instruct": ""
+   "instruct": "安靜、有點寂寞"
   },
   {
    "id": "127",
    "role": "xiaoyu",
    "text": "對不起，我真的不知道你在下面……現在大家都不敢玩溜滑梯了。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "很愧疚，小聲地道歉"
   },
   {
    "id": "128",
    "role": "me_b",
    "text": "要包好幾個星期，不能寫字，也不能上體育課。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "沮喪、無奈"
   },
   {
    "id": "129",
    "role": "me_g",
    "text": "要包好幾個星期，不能寫字，也不能上體育課。",
-   "instruct": "小學生自然的語氣"
+   "instruct": "沮喪、無奈"
   }
  ],
  "output": {

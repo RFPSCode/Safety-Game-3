@@ -1688,7 +1688,7 @@ let player=kid(campus,LOOK(),[0,0,4.5],0);
 let VRM_ME=null;
 const PLACES=[
   {id:'push',name:'悠悅樓平台',icon:'🤲',x:0,z:-4.2},
-  {id:'slide',name:'遊樂器材區',icon:'🛝',x:9.0,z:3.0},
+  {id:'slide',name:'遊樂器材區',icon:'🛝',x:-14.5,z:9.4},
   {id:'race',name:'一樓教室走廊',icon:'🏃',x:-14.2,z:2.0},
 ];
 /* 之後的關卡（製作中） */
@@ -1993,7 +1993,7 @@ async function runCase(id){
   for(let i=0;i<C.steps.length;i++){const st=C.steps[i];if(i===C.keyIdx){key=snapState(S);REC=[];}
     await sayAll(st.lines,S);
     FX.devilIn();await FX.drive(st.devil,i);
-    if(st.act){cmRun();await st.act(S,'base');cmHide();}}
+    if(st.act){cmRun('base',S.C.steps.indexOf(st));await st.act(S,'base');cmHide();}}
   GAME.state='tragedy:'+id;
   cmApproach('base');await C.tragedy(S,'base');cmHide();slowmo(1,0);
   musicPlay('tragedy');
@@ -2014,7 +2014,7 @@ async function runCase(id){
     cmSafe();await wait(1.4);musicPlay('daily');await C.safe(S);cmHide();slowmo(1,0);await sayAll(C.safeLines.slice(0,-1),S);
     GAME.state='happy:'+id;fxHearts(true);SFX.warm();S.actors.forEach(c=>{if(c.root.visible&&c!==S.me&&c.pose==='idle')c.setMood('joy');});
     await sayAll(C.safeLines.slice(-1),S);storyOn(false);await reward(C);}
-  else{REC=null;S.phase='tempt';FX.angelOut();musicPlay('devil');for(let i=C.keyIdx;i<C.steps.length;i++){if(C.steps[i].act){cmRun();await C.steps[i].act(S,o.v);cmHide();}}
+  else{REC=null;S.phase='tempt';FX.angelOut();musicPlay('devil');for(let i=C.keyIdx;i<C.steps.length;i++){const st=C.steps[i];if(st.act&&!(st.skip&&st.skip(o.v))){cmRun(o.v,i);await st.act(S,o.v);cmHide();}}
     cmApproach(o.v);await C.tragedy(S,o.v);cmHide();slowmo(1,0);musicPlay('tragedy');await sayAll([['nar',o.after]].concat(o.lines||C.afterShort||C.after.slice(0,2)),S);cmHide();if(o.self&&C.hospital)await C.hospital(S,o);else await jailScene(C,o);storyOn(false);await gameOver(C,o);}
 }
 async function jailScene(C,o){GAME.state='jail:'+C.id;musicPlay('devil');document.body.classList.add('jail');S.phase='jail';
@@ -2124,7 +2124,9 @@ const DIR={
   slide:{
     insert:[S=>({shot:()=>aim(_c3.set(SL.x+0.25,0.9,SL.bot+1.2),_c1.set(SL.x,SL.deck+0.5,SL.top),40),tag:'滑道看起來很快就能爬到頂'}),
       S=>({shot:SH.face(S.yu),tag:'上面的小宇在跟小美聊天'})],
-    run:S=>[{slot:'A',shot:()=>aim(_c3.set(SL.x-1.6,1.4,SL.bot-0.4),_c1.set(SL.x,0.8,SL.bot-1.0),42),fx:'speed',tag:'手腳並用往上爬',sfx:'嘰——'},{slot:'B',shot:SH.face(S.yu),tag:'小宇沒有看下面'}],
+    run:(S,v,i)=>{if(v==='cut')return{pose:'walk',burst:{t:'插隊！',icon:'⚠️'},ps:[{slot:'A',shot:()=>aim(_c3.set(4.2,1.6,0.6),_c1.set(2.9,0.9,-0.9),42),fx:'speed',tag:'跑去攀爬網前面插隊',sfx:'借過——'},{slot:'B',shot:SH.face(S.kai),tag:'小凱已經在網子上'}]};
+      if(i===0)return{pose:'run',ps:[{slot:'A',shot:()=>aim(_c3.set(SL.x+0.6,1.3,SL.bot+2.2),_c1.set(SL.x,0.8,SL.bot),42),fx:'speed',tag:'跑到滑道下面',sfx:'咚咚——'},{slot:'B',shot:SH.face(S.kai),tag:'小凱也跟著跑過來'}]};
+      return{pose:'crawl',burst:{t:'爬！',icon:'🧗'},ps:[{slot:'A',shot:()=>aim(_c3.set(SL.x-1.6,1.4,SL.bot-0.4),_c1.set(SL.x,0.8,SL.bot-1.0),42),fx:'speed',tag:'手腳並用往上爬',sfx:'嘰——'},{slot:'B',shot:SH.face(S.yu),tag:'小宇沒有看下面'}]};},
     approach:(S,v)=>{if(v==='cut')return{pose:'idle',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(4.2,1.6,0.6),_c1.set(2.9,0.9,-0.9),42),tag:'在攀爬網上推擠',sfx:'擠——'},{slot:'B',shot:SH.face(S.kai),tag:'小凱'}],burst:{t:'危險！',icon:'⚠️'}};
       return{pose:'crawl',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(SL.x+1.5,1.6,SL.top+1.6),_c1.set(SL.x,0.9,SL.top+0.9),44),tag:'小宇坐下來就滑',sfx:'咻——'},{slot:'B',shot:SH.face(S.yu),tag:'啊！讓開！'}],burst:{t:'危險！',icon:'⚠️'}};},
     impact:S=>{if(S.v==='cut')return{ps:[{slot:'A',shot:SH.face(S.kai),fx:'impact',tag:'一腳踩空'},{slot:'B',shot:()=>aim(_c3.set(4.3,1.0,0.6),_c1.set(3.3,0.3,-0.6),42),fx:'impact',tag:'從網子上摔下來'}]};
@@ -2134,8 +2136,8 @@ const DIR={
   race:{
     insert:[S=>({shot:SH.face(S.kai),tag:'小凱領先你半個身體'}),
       S=>({shot:()=>aim(_c3.set(cxAt(-0.8)+0.25,CR.fl+1.25,-0.8),_c1.set(-15.8,CR.fl+1.0,-6.6),44),tag:'轉角看不到對面'})],
-    run:S=>[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(cxAt(k.z-3.4)+0.1,CR.fl+1.05,k.z-3.4),_c1.set(cxAt(k.z+0.4),CR.fl+0.85,k.z+0.4),42);},fx:'speed',tag:'在走廊上狂奔',sfx:'咚咚咚——'},
-      {slot:'B',shot:()=>{const k=S.kai.root.position,f=fwdOf(S.kai,_c2);aim(_c3.set(k.x+f.x*1.25+f.z*0.55,CR.fl+0.32,k.z+f.z*1.25-f.x*0.55),_c1.set(k.x+f.x*0.1,CR.fl+0.22,k.z+f.z*0.1),42);},fx:'speed',tag:'腳步越來越快'}],
+    run:(S,v)=>({pose:v==='solo'?'idle':v==='fast'?'walk':'run',burst:v==='fast'?{t:'快走！',icon:'🚶'}:v==='solo'?{t:'小凱衝出去了！',icon:'🏃'}:{},ps:[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(cxAt(k.z-3.4)+0.1,CR.fl+1.05,k.z-3.4),_c1.set(cxAt(k.z+0.4),CR.fl+0.85,k.z+0.4),42);},fx:'speed',tag:v==='solo'?'小凱一個人在走廊上狂奔':v==='fast'?'說是快走，腳步卻越來越快':'在走廊上狂奔',sfx:v==='fast'?'噠噠噠——':'咚咚咚——'},
+      {slot:'B',shot:()=>{const k=S.kai.root.position,f=fwdOf(S.kai,_c2);aim(_c3.set(k.x+f.x*1.25+f.z*0.55,CR.fl+0.32,k.z+f.z*1.25-f.x*0.55),_c1.set(k.x+f.x*0.1,CR.fl+0.22,k.z+f.z*0.1),42);},fx:'speed',tag:v==='solo'?'小凱的腳步越來越快':v==='fast'?'快走也停不下來':'腳步越來越快'}]}),
     approach:(S,v)=>{if(v==='solo'||v==='fast')return{pose:v==='fast'?'walk':'idle',stage:null,ps:[
         {slot:'A',shot:()=>aim(_c3.set(-13.0,CR.fl+1.2,-7.6),_c1.set(-14.3,CR.fl+0.9,-7.4),46),tag:'轉角走過來的小美',sfx:'咚咚咚——'},{slot:'B',shot:SH.face(S.kai),fx:'speed',tag:'停不下來'}],burst:{t:'危險！',icon:'⚠️'}};
       return{pose:'shove',stage:null,ps:[{slot:'A',shot:()=>{const k=S.kai.root.position;aim(_c3.set(k.x-1.5,CR.fl+1.25,k.z+0.2),_c1.set(k.x+0.45,CR.fl+1.0,k.z),40);},fx:'speed',tag:'伸手推他的背',sfx:'推——'},
@@ -2148,8 +2150,10 @@ const DIR={
   push:{
     insert:[S=>({shot:SH.part(S.mei,'rightHand',{f:0.55,r:-0.3,y:0.1,fov:36}),tag:'小美伸出了手掌'}),
       S=>({shot:()=>aim(_c3.set(-0.2,PF.fl+0.45,-8.4),_c1.set(-1.4,PF.fl+0.05,PF.z),40),tag:'她的身後，是硬硬的地板'})],
-    run:S=>[{slot:'A',shot:SH.two(S.me,S.mei,{side:-1,d:2.3,y:0.55,ly:0.5,fov:42}),fx:'speed',tag:'手掌對手掌',sfx:'推——'},{slot:'B',shot:SH.touch(S.me,'rightHand',S.mei,'leftHand',{side:-1,d:0.75,w:0.5,fov:40}),fx:'speed',tag:'用力推'}],
-    approach:(S,v)=>({pose:v==='pull'?'pull':'pushHold',stage:null,ps:[{slot:'A',shot:v==='pull'?SH.two(S.me,S.mei,{side:-1,d:2.0,y:0.6,ly:0.6,fov:40}):SH.touch(S.me,'rightHand',S.mei,'leftHand',{side:-1,d:0.8,w:0.5,fov:38}),fx:'speed',tag:v==='pull'?'你突然鬆開手':'突然用力一推',sfx:v==='pull'?'放——':'砰——'},
+    run:(S,v)=>{const two=SH.two(S.me,S.mei,{side:-1,d:2.3,y:0.55,ly:0.5,fov:42}),touch=SH.touch(S.me,'rightHand',S.mei,'leftHand',{side:-1,d:0.75,w:0.5,fov:40});
+      if(v==='pull')return{pose:'pull',burst:{t:'拉！',icon:'💪'},ps:[{slot:'A',shot:two,fx:'speed',tag:'手拉著手',sfx:'拉——'},{slot:'B',shot:touch,fx:'speed',tag:'用力往後拉'}]};
+      return{pose:'pushHold',burst:{t:'推！',icon:'✋'},ps:[{slot:'A',shot:two,fx:'speed',tag:'手掌對手掌',sfx:'推——'},{slot:'B',shot:touch,fx:'speed',tag:v==='soft'?'說好輕輕的，卻越推越用力':'用力推'}]};},
+    approach:(S,v)=>({pose:v==='pull'?'pull':'pushHold',stage:null,ps:[{slot:'A',shot:v==='pull'?SH.two(S.me,S.mei,{side:-1,d:2.0,y:0.6,ly:0.6,fov:40}):SH.touch(S.me,'rightHand',S.mei,'leftHand',{side:-1,d:0.8,w:0.5,fov:38}),fx:'speed',tag:v==='pull'?'你突然鬆開手':v==='soft'?'越推越用力':'突然用力一推',sfx:v==='pull'?'放——':'砰——'},
       {slot:'B',shot:SH.body(S.mei,{f:-1.7,r:0.7,y:0.35,ly:0.35,fov:42}),tag:'她的身後沒有東西擋'}],burst:{t:'危險！',icon:'⚠️'}}),
     impact:S=>({ps:[{slot:'A',shot:()=>{const h=bonePos(S.mei,'head',_c1);aim(_c3.set(h.x-0.15,h.y+0.28,h.z+0.8),h,34);},fx:'impact',tag:'後腦撞到地面'},{slot:'B',shot:SH.face(S.mei),fx:'impact',tag:'小美'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]}),
     safe:S=>({pose:'rps',ps:[{slot:'A',shot:SH.two(S.me,S.mei,{side:-1,d:2.3,y:0.75,ly:0.8,fov:42}),fx:'glow',tag:'不比力氣，改玩猜拳'},{slot:'B',shot:SH.part(S.mei,'rightHand',{f:0.6,r:-0.3,y:0.12,fov:36}),fx:'glow',tag:'剪刀、石頭、布！'}]}),
@@ -2157,7 +2161,8 @@ const DIR={
 };
 function cmWhisper(i){const D=DIR[S.C.id],ins=D.insert[i]&&D.insert[i](S);S.me.setMood('surprised');
   cmShow('cm-whisper',[{slot:'D',ov:'devil',fx:'whisper',tag:'小惡魔的耳語',sfx:'嘶嘶……'}].concat(ins?[{slot:'E',shot:ins.shot,fx:'dark',tag:ins.tag}]:[]).concat([{slot:'F',shot:SH.face(S.me,-0.24),fx:'dark',em:'！？'}]));}
-function cmRun(){const D=DIR[S.C.id];mePose('run');S.me.setMood('');cmShow('cm-run',D.run(S),{burst:{t:'衝！',icon:'🏃',cls:'sm',life:1.3}});}
+/* 子畫面字卡要跟玩家選的選項（v）和目前這一步（i）一致 */
+function cmRun(v='base',i=0){const D=DIR[S.C.id],r=D.run(S,v,i),ps=Array.isArray(r)?r:r.ps;mePose(r.pose||'run');S.me.setMood('');cmShow('cm-run',ps,{burst:Object.assign({t:'衝！',icon:'🏃',cls:'sm',life:1.3},r.burst||{})});}
 function cmApproach(v){const a=DIR[S.C.id].approach(S,v);mePose(a.pose);S.me.setMood('');cmShow('cm-danger',a.ps,{stage:a.stage,burst:Object.assign({cls:'sm'},a.burst)});slowmo(0.3,7);}
 function cmImpact(){const st=(CM.stage||stageRig)();S.me.setMood('surprised');const a=DIR[S.C.id].impact(S);cmShow('cm-impact',a.ps,{stage:()=>st,life:2.1,burst:{t:'砰！！',cls:'red'}});slowmo(0.1,1.7);}
 function cmAmb(){const A=ambScene();A.start();SFX.siren(7);cmShow('cm-amb',[{slot:'B',scene:A.sc,tick:dt=>A.tick(dt),shot:()=>A.wide(),tag:'🚑 救護車趕到學校',sfx:'喔咿——'},{slot:'C',scene:A.sc,shot:()=>A.close(),fx:'speed',tag:'閃燈、鳴笛'}]);}
@@ -3046,7 +3051,7 @@ CASES.slide={id:'slide',kind:'news',cmDanger:{pose:'crawl',t:'危險！',icon:'�
         walkTo(k,new V3(-0.55,0,4.15),2.8,'run',{face:new V3(SL.x,0,SL.bot)});await moveFP(new V3(-1.12,1.3,4.15),3.2,'run',new V3(SL.x,0.9,1.2));
         await camTo(new V3(-1.15,1.3,4.0),new V3(SL.x,1.25,0.2),0.6);}},
     {lines:[['me','看好了，我從這裡爬上去最快！'],['xiaokai','等我！我也要爬！']],devil:'快爬！趁上面的人還沒滑下來！',
-      act:async(S,v)=>{FX.devilOut();if(v==='cut')return;const me=S.me,k=S.kai,yu=S.yu;
+      skip:v=>v==='cut',act:async(S,v)=>{FX.devilOut();if(v==='cut')return;const me=S.me,k=S.kai,yu=S.yu;
         /* 手腳並用，從滑道底部往上爬：主角的身體貼著滑道，鏡頭在主角眼睛 */
         rig.fp=true;S.fpYaw=PI;S.fpRoot=new V3(SL.x,slideY(SL.bot-0.2)+0.02,SL.bot-0.2);S.fpPitch=-slidePitch(SL.bot-0.2);me.root.visible=true;me.pose='crawl';me.crawlF=7;
         crawlOnSlide(k,SL.bot+0.35,0.1);k.crawlF=7;const z0=SL.bot-0.2,z1=SL.top+1.15;S.cz=z1;

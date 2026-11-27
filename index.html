@@ -1348,7 +1348,10 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     if(c.anchor){c.lift=0;c.bobP=0;return;}
     c.root.updateMatrixWorld(true);let mn=1e9;for(const g of c.GB){g[0].getWorldPosition(_gv);if(_gv.y-g[1]<mn)mn=_gv.y-g[1];}
     {const dl=c.root.matrixWorld.elements[13]-(mn-c.bobP);if(Math.abs(dl)>0.12)c.rs=1;c.lift=P==='stairs'?0:clamp(c.lift+dl,-1.7,0.8);}
-    _gv.set(0,1,0).applyQuaternion(_gq.copy(c.root.quaternion).invert());body.position.copy(_gv).multiplyScalar(c.lift+bob);c.bobP=bob;};
+    _gv.set(0,1,0).applyQuaternion(_gq.copy(c.root.quaternion).invert());body.position.copy(_gv).multiplyScalar(c.lift+bob);c.bobP=bob;
+    /* 抱在手上的東西（例：小美的作業簿）每一格跟著雙手走，不會跟身體上下錯開而一直跳 */
+    if(c.held&&c.held.length&&c.B.leftHand&&c.B.rightHand){c.root.updateMatrixWorld(true);const a=c.B.leftHand.getWorldPosition(new V3()),b=c.B.rightHand.getWorldPosition(new V3());const m=a.add(b).multiplyScalar(0.5);c.root.worldToLocal(m);
+      c.held.forEach((o,i)=>{if(o.parent===c.root)o.position.set(m.x,m.y+0.02+i*0.03,m.z-0.02);});}};
   c.setMood=m=>{c.mood=m||'';};c.mouthFrame=()=>{};
   return c;}
 
@@ -2796,7 +2799,7 @@ function raceReset(S){const F=CR.fl,k=S.kai,m=S.mei,t=S.tea;if(S.pack)S.pack.use
   m.root.visible=false;m.carry=false;t.root.visible=false;S.books.forEach(b=>b.visible=false);S.mbooks.forEach(b=>b.visible=false);
   S.me.pose='idle';const [p]=fpAt(CR.start,LANE.me,-1.5);camCut(p,new V3(k.root.position.x,F+1.15,k.root.position.z),true);}
 /* 小美抱著作業簿從轉角走出來 */
-function meiCarry(S,on){const m=S.mei;m.carry=on;S.mbooks.forEach((b,i)=>{if(on){m.root.add(b);b.visible=true;b.position.set(0,0.86+i*0.03,0.2);b.rotation.set(0,0.1*i,0);}});}
+function meiCarry(S,on){const m=S.mei;m.carry=on;m.held=on?S.mbooks.slice():null;S.mbooks.forEach((b,i)=>{if(on){m.root.add(b);b.visible=true;b.position.set(0,0.86+i*0.03,0.2);b.rotation.set(0,0.1*i,0);}});}
 CASES.race={id:'race',cmDanger:{pose:'run',t:'危險！',icon:'⚠️',tag:'伸手推人',sfx:'推——',vtag:'前面的小凱'},
   mock:'你又被我騙了！走廊上推一下，小凱的頭骨就裂了，還要賠十二萬四千元！',roles:['xiaokai','xiaomei','teacher'],amb:'corridor',no:3,ref:'',title:'走廊競速推人',icon:'🏃',badge:'走廊安全徽章',badgeIcon:'🏃',
   desc:'兩名學生在走廊上比賽跑步，後面的學生伸手推前面同學的背，對方往前撲倒，造成頭骨骨折、腦出血、臉部神經受傷和聽力受損。監視器畫面顯示是故意推人：推人的學生負 90% 責任，在走廊奔跑的學生也要負 10% 責任。',award:'判賠 12.4 萬元',
